@@ -1,0 +1,45 @@
+diff --git a/crates/kwavers-driver/Cargo.toml b/crates/kwavers-driver/Cargo.toml
+index df6c51f..af1d0a9 100644
+--- a/crates/kwavers-driver/Cargo.toml
++++ b/crates/kwavers-driver/Cargo.toml
+@@ -15,6 +15,7 @@ exclude = ["/docs/datasheets/", "/docs/renders/"]
+ authors = ["Ryan Clanton <ryanclanton@outlook.com>"]
+ 
+ [dependencies]
++electra-network = "0.1.0"
+ aequitas = { workspace = true }
+ eunomia = { workspace = true }
+ thiserror = "1"
+diff --git a/crates/kwavers-driver/src/physics/thermal/ir_drop.rs b/crates/kwavers-driver/src/physics/thermal/ir_drop.rs
+index 0d79fda..89ba9ff 100644
+--- a/crates/kwavers-driver/src/physics/thermal/ir_drop.rs
++++ b/crates/kwavers-driver/src/physics/thermal/ir_drop.rs
+@@ -123,16 +123,18 @@ pub fn ir_drop(
+     // Gauss–Seidel: V_i = (Σ_j g_ij V_j + I_i) / Σ_j g_ij, supply pinned at 0 (reference).
+     let mut v = vec![0.0f64; n];
+     for _ in 0..iters {
+-        for i in 0..n {
+-            if i == supply_node || gsum[i] <= 0.0 {
+-                continue;
+-            }
+-            let mut acc = inj[i];
+-            for edge in adj_offsets[i]..adj_offsets[i + 1] {
+-                acc += adj_weights[edge] * v[adj_neighbours[edge]];
+-            }
+-            v[i] = acc / gsum[i];
+-        }
++        let rows = (0..n)
++            .filter(|&i| !(i == supply_node || gsum[i] <= 0.0))
++            .map(|i| {
++                let run = adj_offsets[i]..adj_offsets[i + 1];
++                electra_network::RelaxationRow {
++                    node: i,
++                    diagonal: gsum[i],
++                    source: inj[i],
++                    neighbours: run.map(|edge| (adj_neighbours[edge], adj_weights[edge])),
++                }
++            });
++        electra_network::sweep(&mut v, rows);
+     }
+     // Drop = how far below the supply reference (most negative node).
+     let max_drop = v.iter().copied().fold(0.0f64, |m, x| m.max(-x));

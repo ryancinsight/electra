@@ -1,0 +1,61 @@
+diff --git a/crates/cfd-1d/Cargo.toml b/crates/cfd-1d/Cargo.toml
+index 26394d2b..addda48b 100644
+--- a/crates/cfd-1d/Cargo.toml
++++ b/crates/cfd-1d/Cargo.toml
+@@ -17,6 +17,7 @@ exclude = ["outputs/**"]
+ default = []
+ 
+ [dependencies]
++electra-network = "0.1.0"
+ aequitas = { workspace = true, features = ["serde"] }
+ cfd-core.workspace = true
+ cfd-math = { path = "../cfd-math" }
+diff --git a/crates/cfd-1d/src/solver/core/matrix_assembly.rs b/crates/cfd-1d/src/solver/core/matrix_assembly.rs
+index 534d7aba..fdccc7a4 100644
+--- a/crates/cfd-1d/src/solver/core/matrix_assembly.rs
++++ b/crates/cfd-1d/src/solver/core/matrix_assembly.rs
+@@ -199,35 +199,16 @@ impl<T: CfdScalar + Copy + Send + Sync + NumericElement> MatrixAssembler<T> {
+                 ));
+             }
+ 
+-            let i_is_dir = dirichlet_values[i].is_some();
+-            let j_is_dir = dirichlet_values[j].is_some();
+-
+-            match (i_is_dir, j_is_dir) {
+-                (false, false) => {
+-                    // Standard symmetric Laplacian contributions
+-                    coo.push(i, i, conductance);
+-                    coo.push(j, j, conductance);
+-                    coo.push(i, j, -conductance);
+-                    coo.push(j, i, -conductance);
+-                }
+-                (true, false) => {
+-                    // i fixed: remove column i and add contribution to RHS of j
+-                    coo.push(j, j, conductance);
+-                    let p_i =
+-                        dirichlet_values[i].expect("Dirichlet value must be set for fixed node i");
+-                    rhs[j] += conductance * p_i;
+-                }
+-                (false, true) => {
+-                    // j fixed: remove column j and add contribution to RHS of i
+-                    coo.push(i, i, conductance);
+-                    let p_j =
+-                        dirichlet_values[j].expect("Dirichlet value must be set for fixed node j");
+-                    rhs[i] += conductance * p_j;
+-                }
+-                (true, true) => {
+-                    // Both fixed: no equation to assemble between fixed nodes
+-                }
++            electra_network::Branch {
++                from: i,
++                to: j,
++                conductance,
+             }
++            .stamp(
++                [dirichlet_values[i], dirichlet_values[j]],
++                |row, col, value| coo.push(row, col, value),
++                |row, value| rhs[row] += value,
++            );
+         }
+ 
+         // Apply Neumann sources to RHS
