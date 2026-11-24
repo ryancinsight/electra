@@ -1,4 +1,4 @@
-use super::{VoltageError, connectivity::root, cycles};
+use super::{VoltageError, connectivity::join, cycles};
 use crate::{Element, Part, Resistor};
 use electra_network::Branch;
 
@@ -28,12 +28,9 @@ impl Forest {
         // which closes a cycle even if BFS would visit its endpoints earlier.
         for (index, p) in parts.iter().enumerate() {
             if matches!(p.element, Element::Voltage { .. }) {
-                let a = root(&mut links, p.positive);
-                let b = root(&mut links, p.negative);
-                if a == b {
+                if !join(&mut links, p.positive, p.negative) {
                     chords.push(index);
                 } else {
-                    links[b] = a;
                     sources.push(index);
                     degree[p.positive + 1] += 1;
                     degree[p.negative + 1] += 1;

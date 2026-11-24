@@ -58,7 +58,8 @@ pub struct DcSweep<'a> {
 }
 
 impl Circuit {
-    /// Prepare the linear sweep declared by a .dc card.
+    /// Prepare the independent-source reduced-network sweep declared by a .dc card.
+    /// Use [`Circuit::dc_sweep_mna`] for a circuit containing dependent sources.
     pub fn dc_sweep(&self, options: SolveOptions) -> Result<DcSweep<'_>, SweepError> {
         DcSweep::new(
             self,
@@ -67,7 +68,8 @@ impl Circuit {
         )
     }
 
-    /// Sweep a named independent source using an explicitly dimensioned range.
+    /// Sweep a named independent source using an explicitly dimensioned range and reduction.
+    /// Use [`Circuit::sweep_source_mna`] for a circuit containing dependent sources.
     pub fn sweep_source(
         &self,
         name: &str,

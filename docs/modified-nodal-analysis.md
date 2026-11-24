@@ -1,6 +1,6 @@
 # Modified nodal DC analysis
 
-Select `--solver mna` on an operating point or a single-source transfer sweep. The supported elements are resistors and independent voltage and current sources, including floating and zero-volt probes. The default `reduced` solver uses boundary elimination or supernodes. Both solvers accept hierarchical decks, included files and fully qualified source names.
+Select `--solver mna` on an operating point or a single-source transfer sweep. MNA supports resistors, independent sources, floating and zero-volt probes, and linear E/G/F/H sources. The CLI selects MNA for dependent sources and reduction for independent-source decks. Reduction uses boundary elimination or supernodes. [Controlled-source equations and qualification](controlled-sources.md) Both solvers accept hierarchical decks, included files and fully qualified source names.
 
 ```sh
 cargo run --release --offline --locked --bin electra -- op examples/floating-source.cir --solver mna
@@ -33,7 +33,7 @@ Every successful point must satisfy both of the following physical checks after 
 | KCL at every original node, including ground | Absolute current tolerance plus relative tolerance times the sum of absolute incident currents |
 | Voltage drop across each ideal source | Absolute voltage tolerance plus relative tolerance times the absolute imposed voltage |
 
-The solver also checks finite probes and detects a nonzero imposed voltage that vanishes in the returned node potentials. If the global norm passes while a physical row fails, the solver can solve the residual equation once more within the original iteration budget. The correction uses its own right-hand-side scale. A 0.125 V source and 2 Ω load beside an independent 1e16 V rail exercise this case. A 1 V drop on a 1e16 V common-mode potential exercises loss of resolution and produces a diagnostic.
+The solver also checks finite probes and detects a nonzero independent-source voltage that vanishes in the returned node potentials. If the global norm passes while a physical row fails, the solver can solve the residual equation once more within the original iteration budget. The correction uses its own right-hand-side scale. A 0.125 V source and 2 Ω load beside an independent 1e16 V rail exercise this case. A 1 V drop on a 1e16 V common-mode potential exercises loss of resolution and produces a diagnostic.
 
 Both backends use compensated summation for fixed current injections. The reduced solver also compensates current recovery through floating voltage-source trees. Tests preserve a 1 A bias between opposing 1e20 A sources, recover a 0.5 A probe current and retain the bias when sweeping a canceling source.
 

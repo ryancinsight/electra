@@ -73,14 +73,24 @@ impl<'a> Expansion<'a> {
                 Operation::Device {
                     nodes: [a, b],
                     value,
+                    input,
                 } => {
                     let a = self.node(*a, base, model.nodes[*a]);
                     let b = self.node(*b, base, model.nodes[*b]);
+                    use crate::netlist::device::Input;
+                    let input = match *input {
+                        Input::Independent => Input::Independent,
+                        Input::Potential(pair) => {
+                            Input::Potential(pair.map(|n| self.node(n, base, model.nodes[n])))
+                        }
+                        Input::Branch(s) => Input::Branch(qualified(&self.path, s)),
+                    };
                     self.builder
                         .emit(
                             qualified(&self.path, card.name),
                             a,
                             b,
+                            input,
                             value.get(&self.params[params..]),
                         )
                         .map_err(|msg| deck.error(card.at, msg))?;

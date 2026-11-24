@@ -41,7 +41,7 @@ fn instance_dimension_arity_and_visibility_diagnostics() {
         &["unknown local parameter shared"],
     );
     error(".param r=5\nV1 n 0 1", 1, &["needs a unit"]);
-    error(".param t=1mS\nV1 n 0 1", 1, &["needs a unit"]);
+    error(".param t=1mS\nV1 n 0 {t}", 2, &["expected V, got S"]);
     error(".param r=💡\nV1 n 0 1", 1, &["needs a unit"]);
 }
 

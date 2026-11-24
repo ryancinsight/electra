@@ -69,8 +69,11 @@ fn summarize(
     let mut size = model.size;
     for card in &model.cards {
         match &card.op {
-            Operation::Device { nodes, .. } => {
+            Operation::Device { nodes, input, .. } => {
                 nodes.iter().copied().for_each(&mut mark);
+                if let crate::netlist::device::Input::Potential(pair) = input {
+                    pair.iter().copied().for_each(&mut mark);
+                }
             }
             Operation::Instance { target, pins, .. } => {
                 for (&node, &connected) in model.pins[pins.clone()]

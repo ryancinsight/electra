@@ -9,6 +9,8 @@ pub enum MnaError {
     InvalidOptions,
     /// An unanchored passive or voltage-source component.
     Floating(usize),
+    /// Controlled-source equations did not establish a unique numerical operating point.
+    RankDeficient,
     /// Unrepresentable physical or normalized result.
     Arithmetic,
     /// Storage allocation or provider contract failure.
@@ -53,6 +55,9 @@ impl fmt::Display for MnaError {
         match self {
             Self::InvalidOptions => f.write_str("invalid MNA tolerances or iteration budget"),
             Self::Floating(n) => write!(f, "floating component containing node {n}"),
+            Self::RankDeficient => {
+                f.write_str("controlled-source system is singular or numerically rank deficient")
+            }
             Self::Arithmetic => f.write_str("non-finite or unrepresentable MNA result"),
             Self::Backend(e) => f.write_str(e),
             Self::Krylov { reason, iterations } => {

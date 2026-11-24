@@ -1,6 +1,6 @@
 [package]
 name = "electra-circuit"
-description = "Typed electrical DC operating points and transfer sweeps for hierarchical independent-source circuits"
+description = "Typed electrical DC operating points and transfer sweeps for hierarchical linear circuits"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true

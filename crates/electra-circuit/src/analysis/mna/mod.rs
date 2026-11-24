@@ -150,7 +150,7 @@ impl<'a> Session<'a> {
     }
 }
 impl Circuit {
-    /// Solve a full modified nodal system for non-reference voltages and independent voltage-source currents.
+    /// Solve a full modified nodal system for non-reference voltages and all voltage-defined branch currents.
     pub fn operating_point_mna(&self, limits: MnaOptions) -> Result<MnaPoint<'_>, MnaError> {
         let mut session = Session::new(self, limits, None)?;
         session.run(None)?;

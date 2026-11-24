@@ -5,8 +5,10 @@ use super::{
     source::{Deck, Loc},
 };
 use crate::netlist::{
-    FileError, fold,
-    value::{Unit, Value},
+    FileError,
+    device::{Device, Input},
+    fold,
+    value::Value,
 };
 use std::{
     borrow::Cow,
@@ -14,10 +16,11 @@ use std::{
     ops::Range,
 };
 
-pub(super) enum Operation {
+pub(super) enum Operation<'a> {
     Device {
         nodes: [usize; 2],
         value: Operand,
+        input: Input<usize, &'a str>,
     },
     Instance {
         target: usize,
@@ -28,7 +31,7 @@ pub(super) enum Operation {
 pub(super) struct Card<'a> {
     pub name: &'a str,
     pub at: Loc,
-    pub op: Operation,
+    pub op: Operation<'a>,
 }
 
 /// Physical storage required by one expanded instance.
@@ -108,26 +111,49 @@ impl<'a> Template<'a> {
             let op = if name.as_bytes()[0].eq_ignore_ascii_case(&b'X') {
                 template.call(words, block, defs, &mut nodes).map_err(err)?
             } else {
-                let unit = Unit::device(name).map_err(err)?;
-                let (Some(a), Some(b), Some(v), None) =
-                    (words.next(), words.next(), words.next(), words.next())
-                else {
-                    return Err(err("expected two terminals and one value".into()));
-                };
-                let nodes = [nodes.intern(a).map_err(err)?, nodes.intern(b).map_err(err)?];
-                if nodes[0] == nodes[1] {
+                let card = Device::read(name, words).map_err(err)?;
+                let [a, b] = card.ports;
+                let ports = [nodes.intern(a).map_err(err)?, nodes.intern(b).map_err(err)?];
+                if ports[0] == ports[1] {
                     return Err(err("element endpoints must differ".into()));
                 }
-                let value = Operand::bind(v, unit, &block.params, false).map_err(err)?;
+                let input = card
+                    .input
+                    .map(
+                        |n| nodes.intern(n),
+                        |b| {
+                            identifier(b)?;
+                            Ok(b)
+                        },
+                    )
+                    .map_err(err)?;
+                let value =
+                    Operand::bind(card.magnitude, card.unit, &block.params, false).map_err(err)?;
                 direct.parts += 1;
-                direct.resistors += usize::from(unit == Unit::Ohm);
-                Operation::Device { nodes, value }
+                direct.resistors += usize::from(name.as_bytes()[0].eq_ignore_ascii_case(&b'R'));
+                Operation::Device {
+                    nodes: ports,
+                    input,
+                    value,
+                }
             };
             template.cards.push(Card {
                 name,
                 at: span.at,
                 op,
             });
+        }
+        // Validate every model, including definitions without an instance.
+        for card in &template.cards {
+            if let Operation::Device {
+                input: Input::Branch(sense),
+                ..
+            } = card.op
+                && (!matches!(sense.as_bytes()[0].to_ascii_uppercase(), b'V' | b'E' | b'H')
+                    || !names.contains(&fold(sense)))
+            {
+                return Err(deck.error(card.at, format!("{} / {}: controlling branch {sense} must name a local voltage source (V, E or H)",block.name,card.name)));
+            }
         }
         template.nodes = nodes.names;
         template.size = Some(direct);
@@ -140,7 +166,7 @@ impl<'a> Template<'a> {
         parent: &Block<'a>,
         defs: &Definitions<'a>,
         nodes: &mut NodeTable<'a>,
-    ) -> Result<Operation, String> {
+    ) -> Result<Operation<'a>, String> {
         let positional = words
             .clone()
             .take_while(|w| !w.eq_ignore_ascii_case("params:") && !w.contains('='))

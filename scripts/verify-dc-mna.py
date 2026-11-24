@@ -9,6 +9,8 @@ from tempfile import TemporaryDirectory
 import re
 import subprocess
 
+import controlled_fixtures
+
 
 def fixture(seed):
     rng = Random(seed)
@@ -34,15 +36,22 @@ def fixture(seed):
     return parts
 
 
-def reference(parts):
+def reference(parts, controls):
     # Unknowns are non-reference node potentials followed by ideal-source currents.
     nodes = max(max(a, b) for _, a, b, _ in parts)
-    sources = [name for name, *_ in parts if name.startswith("V")]
+    sources = [name for name, *_ in parts if name[0] in "VEH"]
     slots = {name: nodes + i for i, name in enumerate(sources)}
     n = nodes + len(sources)
     matrix = [[Fraction(0) for _ in range(n + 1)] for _ in range(n)]
+    def terminals(a, b):
+        return [(node - 1, sign) for node, sign in [(a, 1), (b, -1)] if node]
+
+    def control_terms(name):
+        signal = controls[name]
+        return terminals(*signal) if isinstance(signal, tuple) else [(slots[signal], 1)]
+
     for name, a, b, value in parts:
-        ports = [(node - 1, sign) for node, sign in [(a, 1), (b, -1)] if node]
+        ports = terminals(a, b)
         if name.startswith("R"):
             for row, s in ports:
                 for col, t in ports:
@@ -50,12 +59,20 @@ def reference(parts):
         elif name.startswith("I"):
             for row, sign in ports:
                 matrix[row][-1] -= sign*value
+        elif name[0] in "GF":
+            for row, sign in ports:
+                for col, orientation in control_terms(name):
+                    matrix[row][col] += sign * orientation * value
         else:
             k = slots[name]
             for row, sign in ports:
                 matrix[row][k] += sign
                 matrix[k][row] += sign
-            matrix[k][-1] = Fraction(value)
+            if name in controls:
+                for col, orientation in control_terms(name):
+                    matrix[k][col] -= orientation * value
+            else:
+                matrix[k][-1] = Fraction(value)
 
     for col in range(n):
         pivot = next(row for row in range(col, n) if matrix[row][col])
@@ -74,6 +91,8 @@ def reference(parts):
             current = (volts[a] - volts[b]) / value
         elif name.startswith("I"):
             current = value
+        elif name[0] in "GF":
+            current = value * sum(s * solution[col] for col, s in control_terms(name))
         else:
             current = solution[slots[name]]
         expected[("I", name)] = current
@@ -97,20 +116,24 @@ def hierarchical_deck(parts):
     return "\n".join(lines)
 
 
-def qualified(name, hierarchy):
+def qualified(name, hierarchy, controlled):
+    if hierarchy and controlled:
+        return f"Xboard/Xcell/{name}"
     return f"X{name}/Xinner/{name[0]}part" if hierarchy else name
 
 
-def check_probes(text, expected, hierarchy, absolute, maximum, context):
+def check_probes(text, expected, hierarchy, controlled, absolute, maximum, context):
     probes = {}
-    for kind, name, value in re.findall(r"^([IV])\(([^)]+)\) = (\S+) [VA]$", text, re.M):
+    for kind, name, value, unit in re.findall(r"^([IV])\(([^)]+)\) = (\S+) (\S+)$", text, re.M):
+        if unit != ("V" if kind == "V" else "A"):
+            raise AssertionError(f"{context}: incorrect unit {unit} for {kind}({name})")
         key = (kind, name)
         if key in probes or not isfinite(float(value)):
             raise AssertionError(f"{context}: duplicate or nonfinite probe {key}")
         probes[key] = float(value)
     outside = 0
     for (kind, name), want in expected.items():
-        key = (kind, qualified(name, hierarchy) if kind == "I" else name)
+        key = (kind, qualified(name, hierarchy, controlled) if kind == "I" else name)
         error = abs(probes.pop(key) - float(want))
         maximum[kind] = max(maximum[kind], error)
         relative = 1e-9 * abs(float(want))
@@ -122,21 +145,22 @@ def check_probes(text, expected, hierarchy, absolute, maximum, context):
     return outside
 
 
-def verify(binary, label, options, absolute, hierarchy=False, sweep=False):
+def verify(binary, label, options, absolute, hierarchy=False, sweep=False, controlled=False):
     maximum = {"V": 0.0, "I": 0.0}
     outside = count = comparisons = 0
     with TemporaryDirectory() as tmp:
         path = Path(tmp) / "source-tree.cir"
         for seed in range(32):
-            parts = fixture(seed)
+            parts, controls = controlled_fixtures.fixture(seed) if controlled else (fixture(seed), {})
             driven = next(name for name, *_ in parts if name[0] == ("V" if seed % 2 else "I"))
-            source = qualified(driven, hierarchy)
+            source = qualified(driven, hierarchy, controlled)
             grid = list(range(-2, 3)) if seed % 4 < 2 else list(range(2, -3, -1))
             expected = ([reference([(name, a, b, q if name == driven else v)
-                                    for name, a, b, v in parts]) for q in grid] if sweep
-                        else [reference(parts)])
+                                    for name, a, b, v in parts], controls) for q in grid] if sweep
+                        else [reference(parts, controls)])
             for order in (parts, list(reversed(parts))):
-                deck = (hierarchical_deck(order) if hierarchy else
+                deck = (controlled_fixtures.deck(order, controls, hierarchy) if controlled else
+                        hierarchical_deck(order) if hierarchy else
                         "".join(f"{name} {a} {b} {v}\n" for name, a, b, v in order))
                 if sweep:
                     deck += f"\n.dc {source} {grid[0]} {grid[-1]} {grid[1]-grid[0]}"
@@ -150,7 +174,7 @@ def verify(binary, label, options, absolute, hierarchy=False, sweep=False):
                         raise AssertionError(f"seed {seed}: excitation sequence differs from {grid}")
                     samples = groups[2::2]
                 for sample, oracle in zip(samples, expected, strict=True):
-                    outside += check_probes(sample, oracle, hierarchy, absolute, maximum, f"seed {seed}")
+                    outside += check_probes(sample, oracle, hierarchy, controlled, absolute, maximum, f"seed {seed}")
                     comparisons += len(oracle)
                 count += 1
     print(f"{label}: {count} decks, {comparisons} probe comparisons, largest errors "
@@ -164,11 +188,15 @@ if __name__ == "__main__":
                         help="represent each device as a nested instance with a typed override")
     parser.add_argument("--solver", choices=["reduced", "mna"], default="reduced")
     parser.add_argument("--sweep", action="store_true", help="verify five points per deck against separate exact solves")
+    parser.add_argument("--controlled", action="store_true", help="test all four dependent-source families in coupled feedback networks")
     args = parser.parse_args()
+    if args.controlled and args.solver != "mna":
+        parser.error("--controlled requires --solver mna")
     solver_options = []
     if args.solver == "mna":
         solver_options += ["--solver", "mna", "--atol-volts", "1e-12"]
     layout = "hierarchical" if args.hierarchical else "flat"
-    verify(args.binary.resolve(), f"{args.solver} {layout} default", solver_options, {"V": 2e-8, "I": 2e-9}, args.hierarchical, args.sweep)
+    nominal_gate = {"V": 1e-10, "I": 1e-12} if args.solver == "mna" else {"V": 2e-8, "I": 2e-9}
+    verify(args.binary.resolve(), f"{args.solver} {layout} default", solver_options, nominal_gate, args.hierarchical, args.sweep, args.controlled)
     verify(args.binary.resolve(), f"{args.solver} {layout} qualification", [*solver_options, "--atol-amps", "1e-14", "--rtol", "1e-13"],
-           {"V": 1e-10, "I": 1e-12}, args.hierarchical, args.sweep)
+           {"V": 1e-10, "I": 1e-12}, args.hierarchical, args.sweep, args.controlled)

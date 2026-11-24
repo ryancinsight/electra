@@ -30,7 +30,8 @@ pub struct DcResult<'a> {
 }
 
 impl Circuit {
-    /// Solve nominal DC bias with branch currents in passive sign convention.
+    /// Solve independent-source DC bias by reduction, with passive-sign branch currents.
+    /// Circuits for which [`Circuit::requires_mna`] is true use [`Circuit::operating_point_mna`].
     pub fn operating_point(&self, options: SolveOptions) -> Result<DcResult<'_>, SolveError> {
         options.validate()?;
         let mut session = Session::new(self, None)?;

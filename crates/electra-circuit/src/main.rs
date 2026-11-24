@@ -43,7 +43,10 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
     let request = Request::parse(env::args_os().skip(1))?;
     let circuit = electra_circuit::parse_file(request.path)?;
     let mut out = io::BufWriter::new(io::stdout().lock());
-    match (request.mode, request.solver) {
+    match (
+        request.mode,
+        request.settings.select(circuit.requires_mna())?,
+    ) {
         (Mode::OperatingPoint, Solver::Reduced(options)) => {
             write_point(&mut out, &circuit.operating_point(options)?)?
         }

@@ -38,6 +38,7 @@ pub(super) struct Session<'a> {
 impl<'a> Session<'a> {
     pub fn new(c: &'a Circuit, swept: Option<usize>) -> Result<Self, SolveError> {
         let (fixed, branches, rhs, coupled) = match &c.constraints {
+            Constraints::General => return Err(SolveError::InvalidInput),
             Constraints::Grounded(fixed) => (
                 fixed.clone(),
                 &c.branches,

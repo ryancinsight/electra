@@ -18,7 +18,7 @@ impl Part {
                 Some((swept, SourceValue::Current(value))) if swept == index => value,
                 _ => amperes,
             }),
-            Element::Voltage { .. } => None,
+            Element::Voltage { .. } | Element::Controlled(_) => None,
         }
     }
 }

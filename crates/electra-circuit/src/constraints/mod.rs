@@ -13,9 +13,23 @@ pub(crate) use forest::Forest;
 pub(crate) enum Constraints {
     Grounded(Vec<Option<ElectricPotential>>),
     Coupled(Forest),
+    General,
 }
 
 impl Constraints {
+    /// Only independent ideal-source loops need a parse-time diagnostic on the MNA path.
+    /// Keep the reduced topology out of controlled-source decks.
+    pub fn general(nodes: usize, parts: &[Part]) -> Result<Self, VoltageError> {
+        let mut links: Vec<_> = (0..nodes).collect();
+        for p in parts {
+            if matches!(p.element, Element::Voltage { .. })
+                && !connectivity::join(&mut links, p.positive, p.negative)
+            {
+                return Forest::compile(nodes, parts, &[]).map(|_| Self::General);
+            }
+        }
+        Ok(Self::General)
+    }
     pub fn compile(
         nodes: usize,
         parts: &[Part],

@@ -1,9 +1,10 @@
-//! Electrical DC analysis for resistor networks and independent sources.
+//! Electrical DC analysis for resistor networks with independent and linear controlled sources.
 //! Use [`parse`] to read a deck, [`Circuit::operating_point`] for nominal bias and
 //! [`Circuit::dc_sweep`] to stream a DC transfer curve. [`Circuit::operating_point_mna`]
 //! and [`Circuit::dc_sweep_mna`] select the full nodal and branch-current system.
 mod analysis;
 mod constraints;
+mod device;
 mod netlist;
 use aequitas::systems::si::dimensions;
 pub use aequitas::systems::si::quantities::{
@@ -24,6 +25,7 @@ pub use netlist::{FileError, ParseError, parse, parse_file};
 
 #[derive(Debug)]
 enum Element {
+    Controlled(usize),
     Resistor { branch: usize },
     Current { amperes: ElectricCurrent },
     Voltage { volts: ElectricPotential },
@@ -46,4 +48,20 @@ pub struct Circuit {
     sweep: Option<analysis::sweep::SweepPlan>,
     branches: Vec<Resistor>,
     parts: Vec<Part>,
+    controlled: Vec<device::Controlled>,
+}
+
+impl Circuit {
+    /// Whether DC analysis requires the general modified nodal solver.
+    pub fn requires_mna(&self) -> bool {
+        !self.controlled.is_empty()
+    }
+
+    fn voltage_output(&self, part: &Part) -> bool {
+        match part.element {
+            Element::Voltage { .. } => true,
+            Element::Controlled(i) => self.controlled[i].voltage_output(),
+            _ => false,
+        }
+    }
 }

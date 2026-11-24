@@ -19,7 +19,7 @@ pub(super) enum Solver {
 pub(super) struct Request {
     pub mode: Mode,
     pub path: PathBuf,
-    pub solver: Solver,
+    pub settings: Settings,
 }
 
 impl Request {
@@ -61,13 +61,49 @@ impl Request {
                 _ => return Err(USAGE.into()),
             }
         }
+        Ok(Self {
+            mode,
+            path,
+            settings: Settings {
+                solver,
+                absolute,
+                relative,
+                budget,
+                volts,
+                iterations,
+            },
+        })
+    }
+}
+
+pub(super) struct Settings {
+    solver: Option<bool>,
+    absolute: Option<ElectricCurrent>,
+    relative: Option<Dimensionless>,
+    budget: Option<usize>,
+    volts: Option<ElectricPotential>,
+    iterations: Option<usize>,
+}
+impl Settings {
+    pub fn select(self, controlled: bool) -> Result<Solver, Box<dyn std::error::Error>> {
+        let Self {
+            solver,
+            absolute,
+            relative,
+            budget,
+            volts,
+            iterations,
+        } = self;
+        if controlled && solver == Some(false) {
+            return Err("controlled sources require the MNA solver".into());
+        }
         let defaults = SolveOptions::default();
         let options = SolveOptions {
             absolute: absolute.unwrap_or(defaults.absolute),
             relative: relative.unwrap_or(defaults.relative),
             max_sweeps: budget.unwrap_or(defaults.max_sweeps),
         };
-        let solver = if solver.unwrap_or(false) {
+        let solver = if solver.unwrap_or(controlled) {
             if budget.is_some() {
                 return Err(
                     "--max-sweeps applies to the reduced solver; use --max-iterations for MNA"
@@ -88,6 +124,6 @@ impl Request {
             options.validate()?;
             Solver::Reduced(options)
         };
-        Ok(Self { mode, path, solver })
+        Ok(solver)
     }
 }

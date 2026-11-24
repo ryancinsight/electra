@@ -1,6 +1,7 @@
-//! Read independent-source decks and elaborate typed, hierarchical designs.
+//! Read linear DC decks and elaborate typed, hierarchical designs.
 mod builder;
 mod control;
+mod device;
 mod error;
 mod flat;
 mod hierarchy;
@@ -35,7 +36,7 @@ fn needs_elaboration(text: &str) -> bool {
 }
 
 /// Parse an in-memory netlist, with case-insensitive names and globally shared node zero.
-/// Supports R/I/V, .op, .dc, .end, .subckt/.ends, X instances and typed .param cards.
+/// Supports R/I/V/E/G/F/H, .op, .dc, .end, .subckt/.ends, X instances and typed .param cards.
 /// Part values are in base SI units and accept decimal or scientific notation with
 /// optional SPICE scale factors. Blank lines and whole-line `*` comments are accepted.
 /// Use [`parse_file`] for relative includes.

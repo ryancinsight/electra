@@ -1,4 +1,4 @@
-use super::{Circuit, ParseError, builder::Builder, control, fold, value::Unit};
+use super::{Circuit, ParseError, builder::Builder, control, device::Device, fold};
 use std::{
     borrow::Cow,
     collections::{HashMap, HashSet},
@@ -33,22 +33,13 @@ pub(super) fn parse(text: &str) -> Result<Circuit, ParseError> {
             }
             continue;
         }
-        let (Some(a), Some(b), Some(token), None) =
-            (fields.next(), fields.next(), fields.next(), fields.next())
-        else {
-            return Err(ParseError::new(
-                line,
-                "expected a four-field R, I or independent V card",
-            ));
-        };
         if !names.insert(fold(name)) {
             return Err(ParseError::new(line, "duplicate element name"));
         }
         let err = |msg| ParseError::new(line, msg);
-        let value = Unit::device(name)
-            .and_then(|u| u.value(token))
-            .map_err(err)?;
-        let [a, b] = [a, b].map(|label| {
+        let card = Device::read(name, fields).map_err(err)?;
+        let value = card.unit.value(card.magnitude).map_err(err)?;
+        let mut intern = |label| {
             let key = fold(label);
             if let Some(&id) = nodes.get(key.as_ref()) {
                 return id;
@@ -56,8 +47,13 @@ pub(super) fn parse(text: &str) -> Result<Circuit, ParseError> {
             let id = builder.node(label.into());
             nodes.insert(key, id);
             id
-        });
-        builder.emit(name.into(), a, b, value).map_err(err)?;
+        };
+        let [a, b] = card.ports.map(&mut intern);
+        let input = card
+            .input
+            .map(|n| Ok(intern(n)), |s| Ok(s.to_owned()))
+            .map_err(err)?;
+        builder.emit(name.into(), a, b, input, value).map_err(err)?;
     }
     drop((names, nodes));
     let mut circuit = builder.finish(

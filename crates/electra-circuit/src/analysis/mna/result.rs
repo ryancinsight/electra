@@ -3,7 +3,7 @@ use super::{
     system::{System, VOLT},
 };
 use crate::{
-    Circuit, DcResult, ElectricCurrent, ElectricPotential,
+    Circuit, DcResult, ElectricCurrent, ElectricPotential, Element, SourceValue,
     analysis::excitation::{CurrentSum, Excitation, voltage},
 };
 
@@ -41,31 +41,41 @@ impl MnaPoint<'_> {
         self.residual_volts = ElectricPotential::default();
         for (i, (p, (_, out))) in c.parts.iter().zip(&mut self.probes.amperes).enumerate() {
             let potential = |n: usize| self.probes.volts[n].1;
-            let current = if let Some(current) = p.passive_current(c, potential, i, excitation) {
-                current
-            } else {
-                let (j, s) = sources.next().expect("compiled voltage source slot");
-                let target = voltage(p, i, excitation);
-                let measured = potential(p.positive) - potential(p.negative);
-                let error = (measured - target).abs();
-                let limit = limits.voltage_absolute + target.abs() * limits.relative;
-                if !error.as_base().is_finite() || !limit.as_base().is_finite() {
-                    return Err(MnaError::Arithmetic);
+            let specified = match p.element {
+                Element::Controlled(index) => c.controlled[index].response(potential, |branch| {
+                    system.sources[branch].current_unit * x[system.node_count() + branch]
+                }),
+                _ => match p.passive_current(c, potential, i, excitation) {
+                    Some(current) => SourceValue::Current(current),
+                    None => SourceValue::Voltage(voltage(p, i, excitation)),
+                },
+            };
+            let current = match specified {
+                SourceValue::Current(value) => value,
+                SourceValue::Voltage(target) => {
+                    let (j, s) = sources.next().expect("compiled voltage source slot");
+                    let measured = potential(p.positive) - potential(p.negative);
+                    let error = (measured - target).abs();
+                    let limit = limits.voltage_absolute + target.abs() * limits.relative;
+                    if !error.as_base().is_finite() || !limit.as_base().is_finite() {
+                        return Err(MnaError::Arithmetic);
+                    }
+                    if error > limit {
+                        return Err(MnaError::SourceVoltage {
+                            part: i,
+                            residual: error,
+                            limit,
+                        });
+                    }
+                    if matches!(p.element, Element::Voltage { .. })
+                        && measured == ElectricPotential::default()
+                        && target != ElectricPotential::default()
+                    {
+                        return Err(MnaError::Resolution { part: i });
+                    }
+                    self.residual_volts = self.residual_volts.max(error);
+                    s.current_unit * x[system.node_count() + j]
                 }
-                if error > limit {
-                    return Err(MnaError::SourceVoltage {
-                        part: i,
-                        residual: error,
-                        limit,
-                    });
-                }
-                if measured == ElectricPotential::default()
-                    && target != ElectricPotential::default()
-                {
-                    return Err(MnaError::Resolution { part: i });
-                }
-                self.residual_volts = self.residual_volts.max(error);
-                s.current_unit * x[system.node_count() + j]
             };
             if !current.as_base().is_finite() {
                 return Err(MnaError::Arithmetic);
