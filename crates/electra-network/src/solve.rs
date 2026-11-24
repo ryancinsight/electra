@@ -1,21 +1,27 @@
 use crate::{Branch, RelaxationRow, sweep};
-use std::fmt;
+use aequitas::{Quantity, systems::si::quantities::Dimensionless};
+use std::{
+    fmt,
+    ops::{Add, AddAssign, Div, Mul, Sub, SubAssign},
+};
+
+type Si<D> = Quantity<f64, D>;
 
 /// Limits for a double-precision operating point.
 #[derive(Copy, Clone, Debug)]
-pub struct SolveOptions {
+pub struct SolveOptions<F> {
     /// Absolute nodal conservation tolerance in flow or current units.
-    pub absolute: f64,
+    pub absolute: Si<F>,
     /// Relative tolerance against the sum of absolute physical flows at each node.
-    pub relative: f64,
+    pub relative: Dimensionless,
     /// Maximum number of Gauss–Seidel sweeps.
     pub max_sweeps: usize,
 }
-impl Default for SolveOptions {
+impl<F> Default for SolveOptions<F> {
     fn default() -> Self {
         Self {
-            absolute: 1e-12,
-            relative: 1e-10,
+            absolute: Quantity::from_base(1e-12),
+            relative: Dimensionless::from_base(1e-10),
             max_sweeps: 100_000,
         }
     }
@@ -23,21 +29,21 @@ impl Default for SolveOptions {
 
 /// A solution that passed conservation at every free node.
 #[derive(Debug)]
-pub struct OperatingPoint {
+pub struct OperatingPoint<P, F> {
     /// Potential at each node in caller order.
-    pub potentials: Vec<f64>,
+    pub potentials: Vec<Si<P>>,
     /// Supply injection needed at each fixed node in addition to specified injections.
     /// Entries for free nodes are zero.
-    pub reactions: Vec<f64>,
+    pub reactions: Vec<Si<F>>,
     /// Largest absolute imbalance at a free node.
-    pub max_residual: f64,
+    pub max_residual: Si<F>,
     /// Number of relaxation sweeps performed.
     pub sweeps: usize,
 }
 
 /// Failure to define, represent or converge a network.
 #[derive(Clone, Debug, PartialEq)]
-pub enum Error {
+pub enum Error<F> {
     /// Input lengths, solver options, or prescribed values are invalid.
     InvalidInput,
     /// Invalid endpoints or conductance; index is in caller order.
@@ -51,10 +57,10 @@ pub enum Error {
         /// Number of sweeps executed.
         sweeps: usize,
         /// Worst absolute imbalance in caller units.
-        max_residual: f64,
+        max_residual: Si<F>,
     },
 }
-impl fmt::Display for Error {
+impl<F> fmt::Display for Error<F> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::InvalidInput => f.write_str("invalid network inputs or solver options"),
@@ -66,54 +72,74 @@ impl fmt::Display for Error {
                 max_residual,
             } => write!(
                 f,
-                "no convergence after {sweeps} sweeps (maximum imbalance {max_residual:e})"
+                "no convergence after {sweeps} sweeps (maximum imbalance {:e} SI)",
+                max_residual.as_base()
             ),
         }
     }
 }
-impl std::error::Error for Error {}
+impl<F: fmt::Debug> std::error::Error for Error<F> {}
 
-#[derive(Default)]
-struct Row {
-    diagonal: f64,
-    neighbours: Vec<(usize, f64)>,
+struct Row<G> {
+    diagonal: Si<G>,
+    neighbours: Vec<(usize, Si<G>)>,
 }
 
 /// Solve a passive, linear network with prescribed potentials and signed nodal injections.
 /// Every connected component must meet a prescribed node. Branches may be parallel.
 /// Conservation is checked using physical branch fluxes after every sweep.
-pub fn solve(
-    fixed: &[Option<f64>],
-    injections: &[f64],
-    branches: &[Branch<f64>],
-    options: SolveOptions,
-) -> Result<OperatingPoint, Error> {
+/// The conductance multiplied by a potential must have the flux dimension.
+/// A hydraulic branch cannot be connected to an electrical nodal equation.
+/// ```compile_fail
+/// use aequitas::systems::si::quantities::{ElectricCurrent, ElectricPotential, HydraulicConductance};
+/// use electra_network::{Branch, solve};
+/// let hydraulic = Branch { from: 0, to: 1, conductance: HydraulicConductance::from_base(1.0) };
+/// let _ = solve(&[Some(ElectricPotential::default()), None], &[ElectricCurrent::default(); 2],
+///               &[hydraulic], Default::default());
+/// ```
+pub fn solve<P, G, F>(
+    fixed: &[Option<Si<P>>],
+    injections: &[Si<F>],
+    branches: &[Branch<G>],
+    options: SolveOptions<F>,
+) -> Result<OperatingPoint<P, F>, Error<F>>
+where
+    Si<G>: AddAssign + Mul<Si<P>, Output = Si<F>>,
+    Si<P>: Sub<Output = Si<P>>,
+    Si<F>: Add<Output = Si<F>>
+        + AddAssign
+        + SubAssign
+        + Div<Si<G>, Output = Si<P>>
+        + Mul<Dimensionless, Output = Si<F>>,
+{
     let n = fixed.len();
     if n == 0
         || injections.len() != n
-        || fixed
-            .iter()
-            .flatten()
-            .chain(injections)
-            .any(|x| !x.is_finite())
-        || !options.absolute.is_finite()
-        || !options.relative.is_finite()
-        || options.absolute < 0.0
-        || !(0.0..1.0).contains(&options.relative)
+        || fixed.iter().flatten().any(|x| !x.as_base().is_finite())
+        || injections.iter().any(|q| !q.as_base().is_finite())
+        || !options.absolute.as_base().is_finite()
+        || !options.relative.as_base().is_finite()
+        || options.absolute < Quantity::default()
+        || !(0.0..1.0).contains(options.relative.as_base())
         || options.max_sweeps == 0
     {
         return Err(Error::InvalidInput);
     }
-    let mut rows: Vec<Row> = (0..n).map(|_| Row::default()).collect();
+    let mut rows: Vec<Row<G>> = (0..n)
+        .map(|_| Row {
+            diagonal: Quantity::default(),
+            neighbours: Vec::new(),
+        })
+        .collect();
     let mut rhs = injections.to_vec();
     let mut anchored: Vec<bool> = fixed.iter().map(Option::is_some).collect();
-    for (i, &branch) in branches.iter().enumerate() {
+    for (i, branch) in branches.iter().enumerate() {
         let (a, b) = (branch.from, branch.to);
         if a >= n
             || b >= n
             || a == b
-            || !branch.conductance.is_finite()
-            || branch.conductance <= 0.0
+            || !branch.conductance.as_base().is_finite()
+            || branch.conductance <= Quantity::default()
         {
             return Err(Error::InvalidBranch(i));
         }
@@ -143,13 +169,15 @@ pub fn solve(
     if let Some(i) = anchored.iter().position(|v| !v) {
         return Err(Error::Floating(i));
     }
-    if rows.iter().any(|row| !row.diagonal.is_finite()) || rhs.iter().any(|x| !x.is_finite()) {
+    if rows.iter().any(|row| !row.diagonal.as_base().is_finite())
+        || rhs.iter().any(|x| !x.as_base().is_finite())
+    {
         return Err(Error::Arithmetic);
     }
     let mut potentials: Vec<_> = fixed.iter().map(|v| v.unwrap_or_default()).collect();
-    let mut imbalance = vec![0.0; n];
-    let mut scale = vec![0.0; n];
-    let mut max_residual = 0.0_f64;
+    let mut imbalance = vec![Si::<F>::default(); n];
+    let mut scale = vec![Si::<F>::default(); n];
+    let mut max_residual = Si::<F>::default();
     for sweeps in 1..=options.max_sweeps {
         sweep(
             &mut potentials,
@@ -175,16 +203,16 @@ pub fn solve(
             scale[edge.to] += flow.abs();
         }
         let mut converged = true;
-        max_residual = 0.0;
+        max_residual = Si::<F>::default();
         for i in 0..n {
-            if !imbalance[i].is_finite() || !scale[i].is_finite() {
+            if !imbalance[i].as_base().is_finite() || !scale[i].as_base().is_finite() {
                 return Err(Error::Arithmetic);
             }
             if fixed[i].is_none() {
                 let r = imbalance[i].abs();
                 max_residual = max_residual.max(r);
-                converged &= r <= options.absolute + options.relative * scale[i];
-                imbalance[i] = 0.0;
+                converged &= r <= options.absolute + scale[i] * options.relative;
+                imbalance[i] = Quantity::default();
             }
         }
         if converged {

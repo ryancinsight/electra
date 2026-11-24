@@ -8,6 +8,7 @@ license.workspace = true
 repository.workspace = true
 
 [dependencies]
+aequitas.workspace = true
 electra-network = { path = "../electra-network", version = "0.1.0" }
 
 [[bin]]

@@ -4,20 +4,28 @@ index 26394d2b..addda48b 100644
 +++ b/crates/cfd-1d/Cargo.toml
 @@ -17,6 +17,7 @@ exclude = ["outputs/**"]
  default = []
- 
+
  [dependencies]
 +electra-network = "0.1.0"
  aequitas = { workspace = true, features = ["serde"] }
  cfd-core.workspace = true
  cfd-math = { path = "../cfd-math" }
 diff --git a/crates/cfd-1d/src/solver/core/matrix_assembly.rs b/crates/cfd-1d/src/solver/core/matrix_assembly.rs
-index 534d7aba..fdccc7a4 100644
+index 534d7aba..be569221 100644
 --- a/crates/cfd-1d/src/solver/core/matrix_assembly.rs
 +++ b/crates/cfd-1d/src/solver/core/matrix_assembly.rs
-@@ -199,35 +199,16 @@ impl<T: CfdScalar + Copy + Send + Sync + NumericElement> MatrixAssembler<T> {
+@@ -56,6 +56,7 @@
+ //! - Non-finite values (NaN/Inf) indicate numerical instability and are rejected immediately.
+
+ use crate::domain::network::Network;
++use aequitas::systems::si::quantities::Pressure;
+ use cfd_core::CfdScalar;
+ use cfd_core::error::{Error, Result};
+ use cfd_core::physics::fluid::FluidTrait;
+@@ -199,35 +200,16 @@ impl<T: CfdScalar + Copy + Send + Sync + NumericElement> MatrixAssembler<T> {
                  ));
              }
- 
+
 -            let i_is_dir = dirichlet_values[i].is_some();
 -            let j_is_dir = dirichlet_values[j].is_some();
 -
@@ -49,13 +57,13 @@ index 534d7aba..fdccc7a4 100644
 +            electra_network::Branch {
 +                from: i,
 +                to: j,
-+                conductance,
++                conductance: edge.conductance,
              }
 +            .stamp(
-+                [dirichlet_values[i], dirichlet_values[j]],
-+                |row, col, value| coo.push(row, col, value),
-+                |row, value| rhs[row] += value,
++                [dirichlet_values[i], dirichlet_values[j]].map(|p| p.map(Pressure::from_base)),
++                |row, col, value| coo.push(row, col, value.into_base()),
++                |row, value| rhs[row] += value.into_base(),
 +            );
          }
- 
+
          // Apply Neumann sources to RHS

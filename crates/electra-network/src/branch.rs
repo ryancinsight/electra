@@ -1,27 +1,30 @@
+use aequitas::Quantity;
 use core::ops::{Mul, Neg};
 
 /// An oriented two-terminal branch with a passive conductance.
 /// Its orientation defines the sign of reported flux.
 #[derive(Clone, Copy, Debug)]
-pub struct Branch<T> {
+pub struct Branch<G, T = f64> {
     /// First endpoint (positive flux leaves this node).
     pub from: usize,
     /// Second endpoint.
     pub to: usize,
     /// Flux per potential difference, in a consistent unit system.
-    pub conductance: T,
+    pub conductance: Quantity<T, G>,
 }
 
-impl<T: Copy + Mul<Output = T> + Neg<Output = T>> Branch<T> {
+impl<G, T: Copy> Branch<G, T> {
     /// Scatter the reduced nodal stamp, eliminating prescribed endpoints.
     /// The caller validates the branch and sets identity rows if it stores fixed nodes.
     /// The callbacks are statically dispatched and need no temporary matrix.
-    pub fn stamp(
-        self,
-        fixed: [Option<T>; 2],
-        mut matrix: impl FnMut(usize, usize, T),
-        mut rhs: impl FnMut(usize, T),
-    ) {
+    pub fn stamp<P, F>(
+        &self,
+        fixed: [Option<Quantity<T, P>>; 2],
+        mut matrix: impl FnMut(usize, usize, Quantity<T, G>),
+        mut rhs: impl FnMut(usize, Quantity<T, F>),
+    ) where
+        Quantity<T, G>: Neg<Output = Quantity<T, G>> + Mul<Quantity<T, P>, Output = Quantity<T, F>>,
+    {
         let g = self.conductance;
         for (i, j, here, there) in [
             (self.from, self.to, fixed[0], fixed[1]),

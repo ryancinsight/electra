@@ -22,7 +22,9 @@ The CLI reports node voltages, signed device currents, iteration count and maxim
 | `electra-network` | Generic two-terminal stamps with fixed-end elimination, ordered relaxation sweeps, anchored linear-network solving and conservation diagnostics. The stamp and sweep monomorphize for the caller’s scalar and storage iterator. |
 | `electra-circuit` | Electrical netlist parsing, SI conventions, independent source constraints, branch currents, DC analysis and the `electra` binary. |
 
-Both packages build offline using the Rust standard library and the Electra workspace. The current locked dependency graph has two packages. New capabilities must use Atlas-owned providers. Dependency ownership and extraction points are recorded in the [architecture note](docs/architecture.md).
+Both crates use Aequitas for dimensional arithmetic. For example, a node voltage multiplied by a branch current produces a value of type `Power`, and a voltage-valued current tolerance fails compilation. The current toolchain floor is Rust 1.95. With dependencies cached, both packages build offline. The locked graph has no third-party direct dependencies and nine inherited third-party package versions through Aequitas/Eunomia. See the [architecture and dependency policy](docs/architecture.md).
+
+The visual workbench is planned. Metis owns UI and interaction; Iris owns visualization. Electra supplies typed electrical data and selection identities to both. The [design evidence](docs/design-evidence.md) connects competitor features and current research to release fixtures.
 
 ## Development
 

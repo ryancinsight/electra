@@ -4,19 +4,80 @@ index df6c51f..af1d0a9 100644
 +++ b/crates/kwavers-driver/Cargo.toml
 @@ -15,6 +15,7 @@ exclude = ["/docs/datasheets/", "/docs/renders/"]
  authors = ["Ryan Clanton <ryanclanton@outlook.com>"]
- 
+
  [dependencies]
 +electra-network = "0.1.0"
  aequitas = { workspace = true }
  eunomia = { workspace = true }
  thiserror = "1"
 diff --git a/crates/kwavers-driver/src/physics/thermal/ir_drop.rs b/crates/kwavers-driver/src/physics/thermal/ir_drop.rs
-index 0d79fda..89ba9ff 100644
+index 0d79fda..ee98b52 100644
 --- a/crates/kwavers-driver/src/physics/thermal/ir_drop.rs
 +++ b/crates/kwavers-driver/src/physics/thermal/ir_drop.rs
-@@ -123,16 +123,18 @@ pub fn ir_drop(
+@@ -10,6 +10,9 @@
+ //! draw current. Node voltages solve the same Laplace system as the thermal field —
+ //! `∇·(σ∇V) = −J` — by Gauss–Seidel over the routed graph.
+
++use aequitas::systems::si::quantities::{
++    ElectricConductance, ElectricCurrent, ElectricPotential, ElectricalImpedance,
++};
+ use std::collections::HashMap;
+
+ use crate::board::{Board, NetId};
+@@ -47,7 +50,7 @@ pub fn ir_drop(
+         *n.entry(k).or_insert(len)
+     };
+     // edges: (a, b, conductance)
+-    let mut edges: Vec<(usize, usize, f64)> = Vec::new();
++    let mut edges: Vec<(usize, usize, ElectricConductance)> = Vec::new();
+     let mut degree: HashMap<usize, u32> = HashMap::new();
+     for t in &board.tracks {
+         if t.net != net {
+@@ -64,7 +67,7 @@ pub fn ir_drop(
+         }
+         let a = idx(key(t.start), &mut nodes);
+         let b = idx(key(t.end), &mut nodes);
+-        edges.push((a, b, 1.0 / r));
++        edges.push((a, b, ElectricalImpedance::from_base(r).reciprocal()));
+         *degree.entry(a).or_default() += 1;
+         *degree.entry(b).or_default() += 1;
+     }
+@@ -83,9 +86,9 @@ pub fn ir_drop(
+     } else {
+         load_current_a / leaves.len() as f64
+     };
+-    let mut inj = vec![0.0f64; n]; // current injected (A); supply absorbs the rest
++    let mut inj = vec![ElectricCurrent::default(); n]; // current injected (A); supply absorbs the rest
+     for &l in &leaves {
+-        inj[l] = -per_leaf; // load draws current
++        inj[l] = ElectricCurrent::from_base(-per_leaf); // load draws current
+     }
+
+     // Node conductance sums + adjacency. The neighbourhoods are held as one
+@@ -94,7 +97,7 @@ pub fn ir_drop(
+     // and the graph costs two allocations instead of a `Vec` header and heap
+     // block per node. Edges are inserted in the same order the per-node
+     // vectors used, so every node's summation order is unchanged.
+-    let mut gsum = vec![0.0f64; n];
++    let mut gsum = vec![ElectricConductance::default(); n];
+     for &(a, b, g) in &edges {
+         gsum[a] += g;
+         gsum[b] += g;
+@@ -109,7 +112,7 @@ pub fn ir_drop(
+     }
+     let adjacency_len = adj_offsets[n];
+     let mut adj_neighbours = vec![0usize; adjacency_len];
+-    let mut adj_weights = vec![0.0f64; adjacency_len];
++    let mut adj_weights = vec![ElectricConductance::default(); adjacency_len];
+     let mut cursor = adj_offsets[..n].to_vec();
+     for &(a, b, g) in &edges {
+         adj_neighbours[cursor[a]] = b;
+@@ -121,21 +124,23 @@ pub fn ir_drop(
+     }
+
      // Gauss–Seidel: V_i = (Σ_j g_ij V_j + I_i) / Σ_j g_ij, supply pinned at 0 (reference).
-     let mut v = vec![0.0f64; n];
+-    let mut v = vec![0.0f64; n];
++    let mut v = vec![ElectricPotential::default(); n];
      for _ in 0..iters {
 -        for i in 0..n {
 -            if i == supply_node || gsum[i] <= 0.0 {
@@ -29,7 +90,7 @@ index 0d79fda..89ba9ff 100644
 -            v[i] = acc / gsum[i];
 -        }
 +        let rows = (0..n)
-+            .filter(|&i| !(i == supply_node || gsum[i] <= 0.0))
++            .filter(|&i| !(i == supply_node || gsum[i] <= ElectricConductance::default()))
 +            .map(|i| {
 +                let run = adj_offsets[i]..adj_offsets[i + 1];
 +                electra_network::RelaxationRow {
@@ -42,4 +103,8 @@ index 0d79fda..89ba9ff 100644
 +        electra_network::sweep(&mut v, rows);
      }
      // Drop = how far below the supply reference (most negative node).
-     let max_drop = v.iter().copied().fold(0.0f64, |m, x| m.max(-x));
+-    let max_drop = v.iter().copied().fold(0.0f64, |m, x| m.max(-x));
++    let max_drop = v.iter().copied().fold(0.0f64, |m, x| m.max(-x.into_base()));
+     Some(IrDrop {
+         net,
+         max_drop_v: max_drop,

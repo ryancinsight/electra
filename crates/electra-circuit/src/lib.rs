@@ -1,14 +1,25 @@
 //! Electrical DC analysis for resistor networks and independent sources.
 //! Use [`parse`] for the supported netlist dialect and [`Circuit::operating_point`] to solve.
 mod netlist;
+use aequitas::systems::si::dimensions;
+pub use aequitas::systems::si::quantities::{
+    Dimensionless, ElectricConductance, ElectricCurrent, ElectricPotential, ElectricalImpedance,
+};
 use electra_network::{Branch, solve};
-pub use electra_network::{Error as SolveError, SolveOptions};
+/// Electrical convergence limits measured in amperes and dimensionless relative error.
+/// ```compile_fail
+/// use electra_circuit::{ElectricPotential, SolveOptions};
+/// let _ = SolveOptions { absolute: ElectricPotential::from_base(1e-9), ..Default::default() };
+/// ```
+pub type SolveOptions = electra_network::SolveOptions<dimensions::ElectricCurrent>;
+/// Electrical solver failure with a current-valued residual on nonconvergence.
+pub type SolveError = electra_network::Error<dimensions::ElectricCurrent>;
 pub use netlist::{ParseError, parse};
 
 #[derive(Debug)]
 enum Element {
-    Resistor { siemens: f64 },
-    Current { amperes: f64 },
+    Resistor { siemens: ElectricConductance },
+    Current { amperes: ElectricCurrent },
     Voltage { prescribed: usize },
 }
 #[derive(Debug)]
@@ -23,21 +34,36 @@ struct Part {
 #[derive(Debug)]
 pub struct Circuit {
     names: Vec<String>,
-    fixed_volts: Vec<Option<f64>>,
-    injected_amps: Vec<f64>,
-    branches: Vec<Branch<f64>>,
+    fixed_volts: Vec<Option<ElectricPotential>>,
+    injected_amps: Vec<ElectricCurrent>,
+    branches: Vec<Branch<dimensions::ElectricConductance>>,
     parts: Vec<Part>,
 }
 
 /// Voltages and passive-sign branch currents in input order.
+///
+/// The compiler checks that current and voltage yield power.
+///
+/// ```
+/// use aequitas::systems::si::quantities::Power;
+/// use electra_circuit::parse;
+/// let circuit = parse("V1 a 0 5\nR1 a 0 1000").unwrap();
+/// let dc = circuit.operating_point(Default::default()).unwrap();
+/// let dissipated: Power = dc.volts[1].1 * dc.amperes[1].1;
+/// assert!((dissipated.into_base() - 0.025).abs() < 1e-12);
+/// ```
+/// ```compile_fail
+/// use electra_circuit::{DcResult, ElectricCurrent};
+/// fn wrong_probe(dc: &DcResult<'_>) -> ElectricCurrent { dc.volts[0].1 }
+/// ```
 #[derive(Debug)]
 pub struct DcResult<'a> {
     /// Node name and potential relative to node zero (V).
-    pub volts: Vec<(&'a str, f64)>,
+    pub volts: Vec<(&'a str, ElectricPotential)>,
     /// Element name and current from first node to second (A).
-    pub amperes: Vec<(&'a str, f64)>,
+    pub amperes: Vec<(&'a str, ElectricCurrent)>,
     /// Maximum absolute KCL imbalance at a free node (A).
-    pub residual_amperes: f64,
+    pub residual_amperes: ElectricCurrent,
     /// Number of relaxation sweeps required.
     pub sweeps: usize,
 }

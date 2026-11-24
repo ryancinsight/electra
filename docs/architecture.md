@@ -8,7 +8,7 @@
 | [kwavers-driver IR drop](https://github.com/ryancinsight/kwavers/blob/7d6c4b89d5acbe223391d08abba2ec144382c7bb/crates/kwavers-driver/src/physics/thermal/ir_drop.rs) | The board path performs ordered Gauss–Seidel sweeps over conductance-weighted neighbours. The preview uses the same Electra sweep as the DC solver. | Track geometry, copper thickness, selection of supply and leaves, equal load distribution, fixed sweep count and maximum-drop convention. |
 | [kwavers-driver electronics](https://github.com/ryancinsight/kwavers/blob/7d6c4b89d5acbe223391d08abba2ec144382c7bb/crates/kwavers-driver/src/physics/pdn/impedance.rs) and [public KiCad consumer](https://github.com/ryancinsight/kwavers/blob/7d6c4b89d5acbe223391d08abba2ec144382c7bb/scripts/tests/driver_consumer/tests/kicad.rs) | Candidate owners for PDN impedance, board structures, placement/routing, DRC and KiCad readers/writers. The existing consumer checks routed pairs and schematic labels. | Transducer drive protocols, array configuration, acoustic loading, experiment presets and application-specific limits stay in kwavers. |
 
-For a two-terminal impedance analogy, voltage corresponds to pressure and current to volumetric flow. Resistance corresponds to pressure drop per unit flow. Compliance and inertance are candidates for future C/L analogues. The CFD adapter converts its typed coefficients at the numerical boundary. Fluxes and tolerances retain their domain units.
+For a two-terminal impedance analogy, voltage corresponds to pressure and current to volumetric flow. Resistance corresponds to pressure drop per unit flow. Compliance and inertance are candidates for future C/L analogues. The CFD adapter passes dimensional coefficients and pressure to the shared stamp. It extracts magnitudes only when writing the consumer’s scalar sparse matrix and RHS. Fluxes and tolerances retain their domain units.
 
 ## Dependency direction
 
@@ -18,15 +18,17 @@ Keep one circuit connectivity model for CLI, editors, KiCad interchange and simu
 
 | Planned capability | Atlas owner or intended integration |
 | --- | --- |
-| Dimensional public quantities, numeric scalar and complex arithmetic | Aequitas and Eunomia. Qualify electrical quantities at the public boundary before expanding model APIs. |
+| Dimensional public quantities, numeric scalar and complex arithmetic | Aequitas is active in both 0.1 crates for typed physical quantities. Eunomia supplies its scalar foundation. Qualify each additional model quantity before use. |
 | Dense and sparse arrays, direct and iterative linear solves | Leto/Leto Ops and Athena. A grounded resistor block is positive definite under the usual passive assumptions. Modified nodal analysis with ideal voltage sources can be indefinite or nonsymmetric; qualify pivoting, scaling and diagnostics on those matrices. |
 | Time integration, spectral analysis, parallel parameter studies | Evaluate Horae for stiff DAEs and event handling, Apollo for spectra, Moirai for work scheduling. Preserve a deterministic serial solve. |
 | Geometry, material coefficients, multiphysics exchange, optional device compute | Gaia, Proteus, Harmonia and Hephaestus. Electra owns electrical laws and boundary conditions. Add a GPU route only with host parity and a measured benefit. |
-| Model/results storage and native editor | Consus where structured storage is required and Metis for native UI. Keep the headless design and simulation APIs callable without a display. |
+| Model/results storage and native editor | Consus for structured storage where required, Metis for native interaction, and Iris for plots, geometry and field visualization. Keep the headless design and simulation APIs callable without a display. |
 
 ## Atlas-only dependency rule
 
-Electra product crates, runtime engines, build dependencies and test libraries must come from Atlas repositories or the Rust toolchain. The 0.1 dependency check enumerates the entire resolved Cargo graph, including workspace feature selection. It rejects every package outside this workspace. Introducing another Atlas provider requires recording its repository and reviewing its full resolved closure. If that brings in third-party packages, narrow features or remove the dependency in the provider before adding it. Do not vendor or rename an external dependency to pass the check.
+Electra takes direct dependencies only on Atlas packages. Both crates use Aequitas 0.5.0 with default features disabled. The locked graph contains two Electra packages, three Atlas provider packages (Aequitas, Eunomia and Eunomia Derive), and nine inherited third-party package versions. Typenum provides dimension arithmetic. Eunomia and its macro/build dependencies bring in bytemuck, bytemuck_derive, libm, proc-macro2, quote, two versions of syn and unicode-ident. The source of these dependencies is the Atlas providers. The CLI, solver and tooling add no independent external engine or library.
+
+The dependency audit rejects third-party direct declarations (including dev/build and platform dependencies), unreviewed sources, and increases outside the reviewed inherited package versions. `python3 scripts/check-dependencies.py --strict-transitive` also rejects the current inherited closure. Keep that result open on the release checklist. Work toward reducing it in the owning Atlas providers; check dimension laws, packed scalar behavior and no-default-feature builds before removing a dependency. Adding a local imitation of Aequitas would introduce competing unit definitions.
 
 KiCad and SPICE are interoperability and validation targets. Archive reference inputs, versioned external outputs where redistribution permits, and analytical derivations. A user must be able to install Electra, simulate a project, edit a board and generate its fabrication files using Atlas code. Reference executables can be used independently to generate comparison data. They are optional to the developer and absent from the product runtime.
 
@@ -38,3 +40,14 @@ KiCad and SPICE are interoperability and validation targets. Archive reference i
 4. Register Electra in the Atlas member inventory and release/evidence boards after its hosted revision is accessible to intended consumers. Pin member and consumer revisions together. Leave source incorporation pending until each consumer’s full release gates pass.
 
 Design references: [KiCad file formats](https://dev-docs.kicad.org/en/file-formats/) and [KiCad simulation workflow](https://www.kicad.org/discover/spice/).
+
+## Presentation ownership and typed data
+
+| Owner | Existing seam | Extension and qualification |
+| --- | --- | --- |
+| Metis | Native application, commands, input events and presentation surfaces. [Provider baseline](https://github.com/ryancinsight/metis/blob/9a126091fdcabf908de9eb5e6d6e26caa5b7f885/README.md) | Extend Metis for reusable canvas gestures, keyboard navigation, hit testing, accessibility, frame presentation and readback where its current API is insufficient. Test pointer and keyboard edits, undo and cross-probing through the native event path. |
+| Iris | Borrowed paired-series and scalar-field views, axis metadata, color mapping and a static render-backend seam. [Provider baseline](https://github.com/ryancinsight/iris/blob/e257ce9996a3c6d0ffb1dbbd1fac4c8fd3e8fe1e/README.md) | Extend Iris for unit-aware axes, log scales, multiple traces, field overlays and reusable 2D/3D view primitives as each feature lands. Test typed samples, numeric cursor readback, missing values, clipping and legend bounds before pixel comparisons. |
+| Electra | Electrical model, analysis settings, topology and stable net/pin/probe IDs | Map circuit or board semantics into Metis commands and Iris views. Schematic and PCB editing, waveform inspection, 3D preview, DRC overlays and fabrication preview all use these providers. A new shared capability lands in its owning Atlas repository with tests and a pinned Electra consumer fixture. |
+| Aequitas | Dimensioned SI quantities and unit conversion | Use its quantities for every physical value from model input through solver, probe, display and export. Carry dimensions through stamps, residuals, absolute tolerances and relative tolerances. Convert magnitude only at text/format, finite-value checks or scalar-only provider boundaries. IDs, iteration counts, event states and pixel indices keep their discrete types. |
+
+The 0.1 electrical and hydraulic operating points use the same dimension-checked equations. Electrical conductance times voltage produces current; hydraulic conductance times pressure produces volumetric flow. For future geometry, time, frequency, complex impedance, thermal, field and spectral quantities, add missing dimensions or units to Aequitas first. Axis labels alone cannot recover lost dimensions. Physical design coordinates stay distinct from screen pixels; a transform and its inverse have round-trip tests. Keep headless analysis usable without Metis or Iris.

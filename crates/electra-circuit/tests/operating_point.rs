@@ -2,7 +2,8 @@
 use electra_circuit::{SolveError, parse};
 use std::{collections::HashMap, process::Command};
 
-fn near(actual: f64, expected: f64, tolerance: f64) {
+fn near<D>(actual: aequitas::Quantity<f64, D>, expected: f64, tolerance: f64) {
+    let actual = actual.into_base();
     assert!(
         (actual - expected).abs() <= tolerance,
         "{actual} vs {expected}"
@@ -19,7 +20,9 @@ fn divider_matches_voltages_signed_currents_and_power_balance() {
     near(i["V1"], -0.003, 1e-15);
     near(i["R1"], 0.003, 1e-15);
     near(i["R2"], 0.003, 1e-15);
-    near(i["V1"] * 9. + 3. * i["R1"] + 6. * i["R2"], 0., 1e-15);
+    let balance: aequitas::systems::si::quantities::Power =
+        v["in"] * i["V1"] + (v["in"] - v["out"]) * i["R1"] + v["out"] * i["R2"];
+    near(balance, 0., 1e-15);
 }
 
 #[test]

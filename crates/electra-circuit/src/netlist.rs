@@ -1,4 +1,7 @@
-use super::{Circuit, Element, Part};
+use super::{
+    Circuit, ElectricConductance, ElectricCurrent, ElectricPotential, ElectricalImpedance, Element,
+    Part,
+};
 use electra_network::Branch;
 use std::{
     collections::{HashMap, HashSet},
@@ -27,7 +30,7 @@ impl Circuit {
             let index = self.names.len();
             self.names.push(name.to_owned());
             self.fixed_volts.push(None);
-            self.injected_amps.push(0.0);
+            self.injected_amps.push(ElectricCurrent::default());
             index
         })
     }
@@ -39,8 +42,8 @@ impl Circuit {
 pub fn parse(text: &str) -> Result<Circuit, ParseError> {
     let mut circuit = Circuit {
         names: vec!["0".into()],
-        fixed_volts: vec![Some(0.0)],
-        injected_amps: vec![0.0],
+        fixed_volts: vec![Some(ElectricPotential::default())],
+        injected_amps: vec![ElectricCurrent::default()],
         branches: vec![],
         parts: vec![],
     };
@@ -92,8 +95,9 @@ pub fn parse(text: &str) -> Result<Circuit, ParseError> {
             .ok_or_else(|| err("expected a finite SI value in decimal or scientific notation"))?;
         let element = match name.as_bytes()[0].to_ascii_uppercase() {
             b'R' => {
-                let g = value.recip();
-                if value <= 0.0 || !g.is_finite() {
+                let resistance = ElectricalImpedance::from_base(value);
+                let g: ElectricConductance = resistance.reciprocal();
+                if resistance <= ElectricalImpedance::default() || !g.as_base().is_finite() {
                     return Err(err("resistance must have finite positive conductance"));
                 }
                 circuit.branches.push(Branch {
@@ -104,11 +108,13 @@ pub fn parse(text: &str) -> Result<Circuit, ParseError> {
                 Element::Resistor { siemens: g }
             }
             b'I' => {
+                let value = ElectricCurrent::from_base(value);
                 circuit.injected_amps[a] -= value;
                 circuit.injected_amps[b] += value;
                 Element::Current { amperes: value }
             }
             b'V' => {
+                let value = ElectricPotential::from_base(value);
                 if a != 0 && b != 0 {
                     return Err(err("0.1 voltage sources require one endpoint at node 0"));
                 }

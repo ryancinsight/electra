@@ -13,14 +13,15 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
     let circuit = electra_circuit::parse(&fs::read_to_string(path)?)?;
     let result = circuit.operating_point(Default::default())?;
     for (name, v) in result.volts {
-        println!("V({name}) = {v:.12e} V");
+        println!("V({name}) = {:.12e} V", v.into_base());
     }
     for (name, i) in result.amperes {
-        println!("I({name}) = {i:.12e} A");
+        println!("I({name}) = {:.12e} A", i.into_base());
     }
     println!(
         "max KCL residual = {:.6e} A ({} sweeps)",
-        result.residual_amperes, result.sweeps
+        result.residual_amperes.into_base(),
+        result.sweeps
     );
     Ok(())
 }
