@@ -1,4 +1,4 @@
-use super::{ParseError, magnitude};
+use super::{ParseError, number::magnitude};
 use crate::{Circuit, Element, LinearSweep, SweepError, SweepRange, analysis::sweep::SweepPlan};
 use aequitas::Quantity;
 
@@ -7,7 +7,7 @@ pub(super) fn parse_card(
     line: usize,
     card: &str,
 ) -> Result<SweepPlan, ParseError> {
-    let err = |message: String| ParseError { line, message };
+    let err = |message: String| ParseError::new(line, message);
     let mut fields = card.split_whitespace().skip(1);
     let (Some(name), Some(start), Some(stop), Some(step), None) = (
         fields.next(),

@@ -32,6 +32,10 @@ Keep one circuit connectivity model for CLI, editors, KiCad interchange and simu
 
 Independent voltage-source connections form a forest when individual currents are unique. The constraint compiler groups each tree into a supernode and preserves the original node and part indices. The `analysis/dc` session uses the same monomorphized `electra-network` relaxation kernel for both original and reduced resistor graphs. On the reduced path, a statically dispatched acceptance callback reconstructs physical voltages and source currents and can request additional iterations. Ground-referenced source decks retain the boundary-elimination path. [Equations and qualification](floating-sources.md)
 
+## Hierarchical netlist compilation
+
+File loading records source spans. Declaration collection establishes the model namespace before linking each definition once to integer node, parameter and model slots. An iterative postorder traversal checks recursion, propagates used pins and counts expanded primitives. The expander reserves physical part and resistor storage, reuses node and parameter scratch across siblings and emits directly into the same circuit builder as the flat reader. The DC solver receives concrete resistor branches and independent sources. Instance lookup, parameter binding and file access finish before the solve. Diagnostic paths are resolved back to source cards on failure. [Grammar, validation and measurements](hierarchical-netlists.md)
+
 ## Atlas-only dependency rule
 
 Electra takes direct dependencies only on Atlas packages. Both crates use Aequitas 0.5.0 with default features disabled. The locked graph contains two Electra packages, three Atlas provider packages (Aequitas, Eunomia and Eunomia Derive), and nine inherited third-party package versions. Typenum provides dimension arithmetic. Eunomia and its macro/build dependencies bring in bytemuck, bytemuck_derive, libm, proc-macro2, quote, two versions of syn and unicode-ident. The source of these dependencies is the Atlas providers. The CLI, solver and tooling add no independent external engine or library.

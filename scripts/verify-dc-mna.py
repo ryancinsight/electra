@@ -1,12 +1,12 @@
 """Check Electra's CLI against exact rational modified nodal analysis on small circuits."""
 
+from argparse import ArgumentParser
 from fractions import Fraction
 from pathlib import Path
 from random import Random
 from tempfile import TemporaryDirectory
 import re
 import subprocess
-import sys
 
 
 def fixture(seed):
@@ -79,7 +79,24 @@ def reference(parts):
     return expected
 
 
-def verify(binary, label, options, absolute):
+def hierarchical_deck(parts):
+    # Reverse the pin order at the inner boundary. The physical polarity is
+    # determined by the leaf formal bindings, independently of card ordering.
+    lines = [f"X{name} {a} {b} pair{name[0]} value={value}"
+             for name, a, b, value in parts]
+    for kind, unit in (("V", "V"), ("I", "A"), ("R", "Ohm")):
+        lines.extend([
+            f".subckt pair{kind} a b params: value=1{unit}",
+            f"Xinner b a leaf{kind} quantity={{value}}",
+            ".ends",
+            f".subckt leaf{kind} minus plus params: quantity=1{unit}",
+            f"{kind}part plus minus {{quantity}}",
+            ".ends",
+        ])
+    return "\n".join(lines)
+
+
+def verify(binary, label, options, absolute, hierarchical=False):
     with TemporaryDirectory() as tmp:
         path = Path(tmp) / "source-tree.cir"
         maximum = {"V": 0.0, "I": 0.0}
@@ -88,8 +105,13 @@ def verify(binary, label, options, absolute):
         for seed in range(32):
             parts = fixture(seed)
             expected = reference(parts)
+            if hierarchical:
+                expected = {(kind, f"X{name}/Xinner/{name[0]}part" if kind == "I" else name): value
+                            for (kind, name), value in expected.items()}
             for order in (parts, list(reversed(parts))):
-                path.write_text("".join(f"{name} {a} {b} {v}\n" for name, a, b, v in order))
+                deck = (hierarchical_deck(order) if hierarchical else
+                        "".join(f"{name} {a} {b} {v}\n" for name, a, b, v in order))
+                path.write_text(deck)
                 result = subprocess.check_output([binary, "op", path, *options], text=True)
                 probes = {(kind, name): float(value) for kind, name, value in
                           re.findall(r"^([IV])\(([^)]+)\) = (\S+) [VA]$", result, re.M)}
@@ -109,7 +131,12 @@ def verify(binary, label, options, absolute):
 
 
 if __name__ == "__main__":
-    binary = Path(sys.argv[1]) if len(sys.argv) == 2 else Path("target/release/electra")
-    verify(binary.resolve(), "default", [], {"V": 2e-8, "I": 2e-9})
-    verify(binary.resolve(), "qualification", ["--atol-amps", "1e-14", "--rtol", "1e-13"],
-           {"V": 1e-10, "I": 1e-12})
+    parser = ArgumentParser(description=__doc__)
+    parser.add_argument("binary", nargs="?", type=Path, default=Path("target/release/electra"))
+    parser.add_argument("--hierarchical", action="store_true",
+                        help="represent each device as a nested instance with a typed override")
+    args = parser.parse_args()
+    layout = "hierarchical" if args.hierarchical else "flat"
+    verify(args.binary.resolve(), f"{layout} default", [], {"V": 2e-8, "I": 2e-9}, args.hierarchical)
+    verify(args.binary.resolve(), f"{layout} qualification", ["--atol-amps", "1e-14", "--rtol", "1e-13"],
+           {"V": 1e-10, "I": 1e-12}, args.hierarchical)

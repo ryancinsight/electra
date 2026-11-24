@@ -3,7 +3,7 @@ mod cli;
 use cli::{Mode, Request};
 use electra_circuit::DcResult;
 use std::{
-    env, fs,
+    env,
     io::{self, Write},
     process::ExitCode,
 };
@@ -25,7 +25,7 @@ fn write_point(out: &mut impl Write, result: &DcResult<'_>) -> io::Result<()> {
 
 fn run() -> Result<(), Box<dyn std::error::Error>> {
     let request = Request::parse(env::args_os().skip(1))?;
-    let circuit = electra_circuit::parse(&fs::read_to_string(request.path)?)?;
+    let circuit = electra_circuit::parse_file(request.path)?;
     let mut out = io::BufWriter::new(io::stdout().lock());
     match request.mode {
         Mode::OperatingPoint => write_point(&mut out, &circuit.operating_point(request.options)?)?,

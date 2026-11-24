@@ -1,0 +1,6 @@
+* Electra divider model. Ohm declares the dimension of each formal parameter.
+.subckt divider supply return sense params: upper=1kOhm lower=2kOhm
+Rupper supply junction {upper}
+Vsense junction sense 0
+Rlower sense return {lower}
+.ends divider

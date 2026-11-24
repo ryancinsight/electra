@@ -1,166 +1,65 @@
+//! Read independent-source decks and elaborate typed, hierarchical designs.
+mod builder;
 mod control;
+mod error;
+mod flat;
+mod hierarchy;
 mod number;
-use super::{
-    Circuit, ElectricConductance, ElectricCurrent, ElectricPotential, ElectricalImpedance, Element,
-    Part,
-};
-use electra_network::Branch;
-use number::magnitude;
-use std::{
-    collections::{HashMap, HashSet},
-    fmt,
-};
+mod value;
 
-/// A line-numbered netlist error.
-#[derive(Debug, PartialEq)]
-pub struct ParseError {
-    /// One-based source line.
-    pub line: usize,
-    /// Diagnostic describing the invalid card.
-    pub message: String,
-}
-impl fmt::Display for ParseError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "line {}: {}", self.line, self.message)
+use crate::Circuit;
+pub use error::{FileError, ParseError};
+use std::{borrow::Cow, fs, path::Path};
+
+fn fold(name: &str) -> Cow<'_, str> {
+    if name.bytes().any(|b| b.is_ascii_uppercase()) {
+        Cow::Owned(name.to_ascii_lowercase())
+    } else {
+        Cow::Borrowed(name)
     }
 }
-impl std::error::Error for ParseError {}
 
-fn node(names: &mut Vec<String>, ids: &mut HashMap<String, usize>, name: &str) -> usize {
-    *ids.entry(name.to_ascii_lowercase()).or_insert_with(|| {
-        let index = names.len();
-        names.push(name.to_owned());
-        index
+fn needs_elaboration(text: &str) -> bool {
+    text.lines().any(|raw| {
+        let text = raw.trim_start();
+        match text.as_bytes().first() {
+            Some(b'X' | b'x') => true,
+            Some(b'.') => text.split_whitespace().next().is_some_and(|w| {
+                [".subckt", ".ends", ".param", ".include"]
+                    .iter()
+                    .any(|s| w.eq_ignore_ascii_case(s))
+            }),
+            _ => false,
+        }
     })
 }
 
-/// Parse four-field R, I and independent V cards. Values use SI base
-/// units, decimal/scientific notation and optional SPICE scale factors. Names are ASCII-case-insensitive.
-/// Blank lines, whole-line '*' comments, '.op', a single '.dc source start stop step'
-/// and a final '.end' are accepted. A sweep may precede its source.
+/// Parse an in-memory netlist, with case-insensitive names and globally shared node zero.
+/// Supports R/I/V, .op, .dc, .end, .subckt/.ends, X instances and typed .param cards.
+/// Part values are in base SI units and accept decimal or scientific notation with
+/// optional SPICE scale factors. Blank lines and whole-line `*` comments are accepted.
+/// Use [`parse_file`] for relative includes.
 pub fn parse(text: &str) -> Result<Circuit, ParseError> {
-    let mut node_names = vec!["0".into()];
-    let mut branches = Vec::new();
-    let mut parts = Vec::new();
-    let mut nodes = HashMap::from([("0".to_string(), 0)]);
-    let mut names = HashSet::new();
-    let mut ended = false;
-    let mut directive = None;
-    for (index, raw) in text.lines().enumerate() {
-        let line = raw.trim();
-        let err = |message: &str| ParseError {
-            line: index + 1,
-            message: message.to_string(),
-        };
-        if line.is_empty() || line.starts_with('*') {
-            continue;
-        }
-        if ended {
-            return Err(err("unexpected content after .end"));
-        }
-        if line.eq_ignore_ascii_case(".end") {
-            ended = true;
-            continue;
-        }
-        if line.eq_ignore_ascii_case(".op") {
-            continue;
-        }
-        let mut fields = line.split_whitespace();
-        if fields
-            .clone()
-            .next()
-            .is_some_and(|word| word.eq_ignore_ascii_case(".dc"))
-        {
-            if directive.is_some() {
-                return Err(err("duplicate .dc directive"));
-            }
-            directive = Some((index + 1, line));
-            continue;
-        }
-        let (Some(name), Some(p), Some(n), Some(value), None) = (
-            fields.next(),
-            fields.next(),
-            fields.next(),
-            fields.next(),
-            fields.next(),
-        ) else {
-            return Err(err("expected a four-field R, I or independent V card"));
-        };
-        if !names.insert(name.to_ascii_lowercase()) {
-            return Err(err("duplicate element name"));
-        }
-        let [a, b] = [p, n].map(|s| node(&mut node_names, &mut nodes, s));
-        if a == b {
-            return Err(err("element endpoints must differ"));
-        }
-        let value = magnitude(value).ok_or_else(|| {
-            err("expected a finite SI value with an optional supported scale factor")
-        })?;
-        let element = match name.as_bytes()[0].to_ascii_uppercase() {
-            b'R' => {
-                let resistance = ElectricalImpedance::from_base(value);
-                let g: ElectricConductance = resistance.reciprocal();
-                if resistance <= ElectricalImpedance::default() || !g.as_base().is_finite() {
-                    return Err(err("resistance must have finite positive conductance"));
-                }
-                let branch = branches.len();
-                branches.push(Branch {
-                    from: a,
-                    to: b,
-                    conductance: g,
-                });
-                Element::Resistor { branch }
-            }
-            b'I' => {
-                let value = ElectricCurrent::from_base(value);
-                Element::Current { amperes: value }
-            }
-            b'V' => Element::Voltage {
-                volts: ElectricPotential::from_base(value),
-            },
-            _ => return Err(err("unsupported element type")),
-        };
-        parts.push(Part {
-            name: name.into(),
-            positive: a,
-            negative: b,
-            element,
-        });
+    if needs_elaboration(text) {
+        hierarchy::parse(text, None).map_err(|e| e.error)
+    } else {
+        flat::parse(text)
     }
-    if parts.is_empty() {
-        return Err(ParseError {
-            line: 1,
-            message: "empty circuit".into(),
-        });
+}
+
+/// Read a root netlist and resolve .include relative to the containing file.
+pub fn parse_file(path: impl AsRef<Path>) -> Result<Circuit, FileError> {
+    let path = path.as_ref();
+    let text = fs::read_to_string(path).map_err(|e| FileError {
+        path: path.into(),
+        error: ParseError::new(1, e.to_string()),
+    })?;
+    if needs_elaboration(&text) {
+        hierarchy::parse(&text, Some(path))
+    } else {
+        flat::parse(&text).map_err(|error| FileError {
+            path: path.into(),
+            error,
+        })
     }
-    drop((nodes, names));
-    let constraints = crate::constraints::Constraints::compile(node_names.len(), &parts, &branches)
-        .map_err(|error| {
-            let source = &parts[error.source].name;
-            // Successful parses keep no per-element line table. Source names are unique.
-            let line = text
-                .lines()
-                .position(|raw| {
-                    raw.split_whitespace()
-                        .next()
-                        .is_some_and(|name| name.eq_ignore_ascii_case(source))
-                })
-                .expect("compiled source came from this deck")
-                + 1;
-            ParseError {
-                line,
-                message: format!("{source}: {}", error.reason),
-            }
-        })?;
-    let mut circuit = Circuit {
-        names: node_names,
-        parts,
-        branches,
-        constraints,
-        sweep: None,
-    };
-    if let Some((line, card)) = directive {
-        circuit.sweep = Some(control::parse_card(&circuit, line, card)?);
-    }
-    Ok(circuit)
 }

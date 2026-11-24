@@ -17,7 +17,8 @@ Use the checkboxes for evidence state. The [design evidence](design-evidence.md)
 <a id="v02"></a>
 ## 0.2 · General DC and netlists
 
-- [ ] Reproduce an eSim-style subcircuit with two parameterized instances. A resistor override in ohms succeeds. A time-valued override fails with instance and parameter names. Check ideal-source voltage/current blocks and their dimensioned residuals.
+- [x] Reproduce an eSim-style subcircuit with two parameterized instances. Check every voltage and branch current against a flat deck and closed form. A time-valued resistor override identifies its instance, parameter and conflicting units. [Example and results](hierarchical-netlists.md)
+- [ ] Check the general MNA ideal-source voltage/current blocks and their dimensioned residuals.
 
 - [x] Check floating independent voltage sources, source reversal, a zero-volt probe, branching source trees, floating islands, incompatible voltage loops and nonunique source currents. Verify original-node KCL at each accepted point. Complete the 20,000-source chain with iterative traversal.
 - [x] Compare all node voltages and individual device currents against exact rational MNA on 32 circuits in two deck orders. At 1e−14 A absolute and 1e−13 relative solver tolerances, all probes meet 1e−9 relative plus 1e−10 V or 1e−12 A absolute. At the default KCL limits, 12 of 2,368 probe comparisons exceed this stricter gate. [Verification and performance](floating-sources.md)
@@ -25,7 +26,7 @@ Use the checkboxes for evidence state. The [design evidence](design-evidence.md)
 - [x] Sweep independent current sources and ground-referenced voltage sources in both directions using the CLI and typed API. Match the 2/3 divider gain, signed source currents and a 25-point bridge against its two-equation solution. Verify decimal endpoints, nondivisible ranges, numerical failures and nominal-bias isolation.
 - [x] Reuse one compiled topology and bounded workspace per sweep. Validate each point against the original physical conservation criterion. Measure elapsed time and peak live solver heap for 101 points at 100, 1,000 and 10,000 free nodes. See the [fixture and results](dc-transfer.md).
 - [x] Parse case-insensitive T/G/MEG/K/M/U/N/P/F scale factors for part and sweep cards. Reject bad units, source types, ranges, trailing fields and duplicate controls with a one-based deck line.
-- [ ] Test hierarchical name collisions, parameter-unit scoping, and file/line diagnostics across included decks.
+- [x] Test hierarchical name collisions, lexical parameter scope, cross-file diagnostics and qualified sweeps. Verify 4,096-level traversal, empty-subtree pruning and rejection of unrepresentable expanded device counts. Compare all probes on 64 hierarchical decks to exact rational MNA at the qualification tolerances. [Evidence](hierarchical-netlists.md)
 - [ ] Demonstrate an Atlas-backed, scaled indefinite solve. Compare to analytical cases and track residual, pivot failures, allocations, peak memory and runtime for 100, 1,000 and 10,000 elements. Record all provider and transitive packages.
 
 <a id="v03"></a>

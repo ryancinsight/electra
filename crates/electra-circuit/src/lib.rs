@@ -18,7 +18,7 @@ use electra_network::Branch;
 pub type SolveOptions = electra_network::SolveOptions<dimensions::ElectricCurrent>;
 /// Electrical solver failure with a current-valued residual on nonconvergence.
 pub type SolveError = electra_network::Error<dimensions::ElectricCurrent>;
-pub use netlist::{ParseError, parse};
+pub use netlist::{FileError, ParseError, parse, parse_file};
 
 #[derive(Debug)]
 enum Element {
