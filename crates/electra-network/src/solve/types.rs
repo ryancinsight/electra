@@ -23,6 +23,21 @@ impl<F> Default for SolveOptions<F> {
     }
 }
 
+impl<F> SolveOptions<F> {
+    /// Check finite, nonnegative absolute tolerance, relative tolerance in [0,1)
+    /// and a positive iteration budget.
+    pub fn validate(&self) -> Result<(), Error<F>> {
+        if !self.absolute.as_base().is_finite()
+            || self.absolute < Si::default()
+            || !(0.0..1.0).contains(self.relative.as_base())
+            || self.max_sweeps == 0
+        {
+            return Err(Error::InvalidInput);
+        }
+        Ok(())
+    }
+}
+
 /// A solution that passed conservation at every free node.
 #[derive(Debug)]
 pub struct OperatingPoint<P, F> {
@@ -46,7 +61,7 @@ pub enum Error<F> {
     InvalidBranch(usize),
     /// This component has no prescribed potential.
     Floating(usize),
-    /// Arithmetic exceeded the finite representable range.
+    /// The physical result exceeds the available floating-point range or resolution.
     Arithmetic,
     /// Conservation tolerance failed at the iteration budget.
     NoConvergence {
@@ -62,7 +77,9 @@ impl<F> fmt::Display for Error<F> {
             Self::InvalidInput => f.write_str("invalid network inputs or solver options"),
             Self::InvalidBranch(i) => write!(f, "invalid branch at index {i}"),
             Self::Floating(i) => write!(f, "floating component containing node {i}"),
-            Self::Arithmetic => f.write_str("non-finite arithmetic in network solution"),
+            Self::Arithmetic => {
+                f.write_str("network result exceeds floating-point range or resolution")
+            }
             Self::NoConvergence {
                 sweeps,
                 max_residual,

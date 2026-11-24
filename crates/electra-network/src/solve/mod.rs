@@ -38,7 +38,7 @@ where
 {
     validate_inputs(fixed, injections, &options)?;
     let mut network = PreparedNetwork::new(fixed, branches)?;
-    network.solve_validated(fixed, injections, options)?;
+    network.solve_validated(fixed, injections, options, |_| Ok(None))?;
     Ok(network.into_point())
 }
 
@@ -51,12 +51,8 @@ fn validate_inputs<P, F>(
         || injections.len() != fixed.len()
         || fixed.iter().flatten().any(|q| !q.as_base().is_finite())
         || injections.iter().any(|q| !q.as_base().is_finite())
-        || !options.absolute.as_base().is_finite()
-        || options.absolute < Si::default()
-        || !(0.0..1.0).contains(options.relative.as_base())
-        || options.max_sweeps == 0
     {
         return Err(Error::InvalidInput);
     }
-    Ok(())
+    options.validate()
 }

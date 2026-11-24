@@ -26,30 +26,22 @@ impl fmt::Display for ParseError {
 }
 impl std::error::Error for ParseError {}
 
-impl Circuit {
-    fn node(&mut self, ids: &mut HashMap<String, usize>, name: &str) -> usize {
-        let key = name.to_ascii_lowercase();
-        *ids.entry(key).or_insert_with(|| {
-            let index = self.names.len();
-            self.names.push(name.to_owned());
-            self.fixed_volts.push(None);
-            index
-        })
-    }
+fn node(names: &mut Vec<String>, ids: &mut HashMap<String, usize>, name: &str) -> usize {
+    *ids.entry(name.to_ascii_lowercase()).or_insert_with(|| {
+        let index = names.len();
+        names.push(name.to_owned());
+        index
+    })
 }
 
-/// Parse four-field R, I and ground-referenced V cards. Values use SI base
+/// Parse four-field R, I and independent V cards. Values use SI base
 /// units, decimal/scientific notation and optional SPICE scale factors. Names are ASCII-case-insensitive.
 /// Blank lines, whole-line '*' comments, '.op', a single '.dc source start stop step'
 /// and a final '.end' are accepted. A sweep may precede its source.
 pub fn parse(text: &str) -> Result<Circuit, ParseError> {
-    let mut circuit = Circuit {
-        names: vec!["0".into()],
-        fixed_volts: vec![Some(ElectricPotential::default())],
-        sweep: None,
-        branches: vec![],
-        parts: vec![],
-    };
+    let mut node_names = vec!["0".into()];
+    let mut branches = Vec::new();
+    let mut parts = Vec::new();
     let mut nodes = HashMap::from([("0".to_string(), 0)]);
     let mut names = HashSet::new();
     let mut ended = false;
@@ -92,14 +84,12 @@ pub fn parse(text: &str) -> Result<Circuit, ParseError> {
             fields.next(),
             fields.next(),
         ) else {
-            return Err(err(
-                "expected a four-field R, I or ground-referenced V card",
-            ));
+            return Err(err("expected a four-field R, I or independent V card"));
         };
         if !names.insert(name.to_ascii_lowercase()) {
             return Err(err("duplicate element name"));
         }
-        let [a, b] = [p, n].map(|s| circuit.node(&mut nodes, s));
+        let [a, b] = [p, n].map(|s| node(&mut node_names, &mut nodes, s));
         if a == b {
             return Err(err("element endpoints must differ"));
         }
@@ -113,8 +103,8 @@ pub fn parse(text: &str) -> Result<Circuit, ParseError> {
                 if resistance <= ElectricalImpedance::default() || !g.as_base().is_finite() {
                     return Err(err("resistance must have finite positive conductance"));
                 }
-                let branch = circuit.branches.len();
-                circuit.branches.push(Branch {
+                let branch = branches.len();
+                branches.push(Branch {
                     from: a,
                     to: b,
                     conductance: g,
@@ -125,34 +115,50 @@ pub fn parse(text: &str) -> Result<Circuit, ParseError> {
                 let value = ElectricCurrent::from_base(value);
                 Element::Current { amperes: value }
             }
-            b'V' => {
-                let value = ElectricPotential::from_base(value);
-                if a != 0 && b != 0 {
-                    return Err(err("0.1 voltage sources require one endpoint at node 0"));
-                }
-                let (prescribed, voltage) = crate::prescribed_voltage(a, b, value);
-                if circuit.fixed_volts[prescribed].replace(voltage).is_some() {
-                    return Err(err(
-                        "multiple ideal voltage sources constrain the same node",
-                    ));
-                }
-                Element::Voltage { prescribed }
-            }
+            b'V' => Element::Voltage {
+                volts: ElectricPotential::from_base(value),
+            },
             _ => return Err(err("unsupported element type")),
         };
-        circuit.parts.push(Part {
+        parts.push(Part {
             name: name.into(),
             positive: a,
             negative: b,
             element,
         });
     }
-    if circuit.parts.is_empty() {
+    if parts.is_empty() {
         return Err(ParseError {
             line: 1,
             message: "empty circuit".into(),
         });
     }
+    drop((nodes, names));
+    let constraints = crate::constraints::Constraints::compile(node_names.len(), &parts, &branches)
+        .map_err(|error| {
+            let source = &parts[error.source].name;
+            // Successful parses keep no per-element line table. Source names are unique.
+            let line = text
+                .lines()
+                .position(|raw| {
+                    raw.split_whitespace()
+                        .next()
+                        .is_some_and(|name| name.eq_ignore_ascii_case(source))
+                })
+                .expect("compiled source came from this deck")
+                + 1;
+            ParseError {
+                line,
+                message: format!("{source}: {}", error.reason),
+            }
+        })?;
+    let mut circuit = Circuit {
+        names: node_names,
+        parts,
+        branches,
+        constraints,
+        sweep: None,
+    };
     if let Some((line, card)) = directive {
         circuit.sweep = Some(control::parse_card(&circuit, line, card)?);
     }

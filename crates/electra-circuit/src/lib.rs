@@ -2,6 +2,7 @@
 //! Use [`parse`] to read a deck, [`Circuit::operating_point`] for nominal bias and
 //! [`Circuit::dc_sweep`] to stream a DC transfer curve.
 mod analysis;
+mod constraints;
 mod netlist;
 use aequitas::systems::si::dimensions;
 pub use aequitas::systems::si::quantities::{
@@ -23,7 +24,7 @@ pub use netlist::{ParseError, parse};
 enum Element {
     Resistor { branch: usize },
     Current { amperes: ElectricCurrent },
-    Voltage { prescribed: usize },
+    Voltage { volts: ElectricPotential },
 }
 #[derive(Debug)]
 struct Part {
@@ -33,24 +34,14 @@ struct Part {
     element: Element,
 }
 
-fn prescribed_voltage(
-    positive: usize,
-    negative: usize,
-    value: ElectricPotential,
-) -> (usize, ElectricPotential) {
-    if negative == 0 {
-        (positive, value)
-    } else {
-        (negative, -value)
-    }
-}
+type Resistor = Branch<dimensions::ElectricConductance>;
 
 /// A checked, named circuit. Node zero is the reference.
 #[derive(Debug)]
 pub struct Circuit {
     names: Vec<String>,
-    fixed_volts: Vec<Option<ElectricPotential>>,
+    constraints: constraints::Constraints,
     sweep: Option<analysis::sweep::SweepPlan>,
-    branches: Vec<Branch<dimensions::ElectricConductance>>,
+    branches: Vec<Resistor>,
     parts: Vec<Part>,
 }

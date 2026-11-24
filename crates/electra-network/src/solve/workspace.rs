@@ -53,6 +53,20 @@ where
         injections: &[Si<F>],
         options: SolveOptions<F>,
     ) -> Result<&OperatingPoint<P, F>, Error<F>> {
+        self.solve_checked(fixed, injections, options, |_| Ok(None))
+    }
+
+    /// Solve with a statically dispatched check of each conservative candidate.
+    /// A reduced-system adapter can inspect the reconstructed physical equations.
+    /// Return `Ok(None)` to accept or `Ok(Some(residual))` to continue iterating.
+    /// An error aborts the solve. The reported residual must be finite and nonnegative.
+    pub fn solve_checked(
+        &mut self,
+        fixed: &[Option<Si<P>>],
+        injections: &[Si<F>],
+        options: SolveOptions<F>,
+        check: impl FnMut(&OperatingPoint<P, F>) -> Result<Option<Si<F>>, Error<F>>,
+    ) -> Result<&OperatingPoint<P, F>, Error<F>> {
         super::validate_inputs(fixed, injections, &options)?;
         if fixed.len() != self.topology.fixed.len()
             || fixed
@@ -62,7 +76,7 @@ where
         {
             return Err(Error::InvalidInput);
         }
-        self.solve_validated(fixed, injections, options)
+        self.solve_validated(fixed, injections, options, check)
     }
 
     pub(super) fn solve_validated(
@@ -70,6 +84,7 @@ where
         fixed: &[Option<Si<P>>],
         injections: &[Si<F>],
         options: SolveOptions<F>,
+        mut check: impl FnMut(&OperatingPoint<P, F>) -> Result<Option<Si<F>>, Error<F>>,
     ) -> Result<&OperatingPoint<P, F>, Error<F>> {
         let graph = &self.topology;
         let point = &mut self.point;
@@ -117,7 +132,15 @@ where
             }
             if converged {
                 point.sweeps = count;
-                return Ok(point);
+                match check(point)? {
+                    None => return Ok(point),
+                    Some(residual)
+                        if residual.as_base().is_finite() && residual >= Si::default() =>
+                    {
+                        point.max_residual = residual
+                    }
+                    Some(_) => return Err(Error::Arithmetic),
+                }
             }
         }
         Err(Error::NoConvergence {

@@ -192,3 +192,36 @@ fn prepared_topology_rejects_mask_changes_and_recovers_from_failures() {
         assert_eq!(p.max_residual, q.max_residual);
     }
 }
+
+#[test]
+fn extra_conservation_checks_can_reject_a_candidate_without_poisoning_the_workspace() {
+    let fixed = [Some(ElectricPotential::default()), None];
+    let edges = [Branch {
+        from: 0,
+        to: 1,
+        conductance: ElectricConductance::from_base(1.0),
+    }];
+    let rhs = [ElectricCurrent::default(); 2];
+    let mut network = electra_network::PreparedNetwork::new(&fixed, &edges).unwrap();
+    for invalid in [f64::NAN, -1.0, f64::INFINITY] {
+        assert!(matches!(
+            network.solve_checked(&fixed, &rhs, Default::default(), |_| Ok(Some(
+                ElectricCurrent::from_base(invalid)
+            ))),
+            Err(Error::Arithmetic)
+        ));
+    }
+    let point = network
+        .solve_checked(&fixed, &rhs, Default::default(), |p| {
+            Ok((p.sweeps == 1).then_some(ElectricCurrent::from_base(1.0)))
+        })
+        .unwrap();
+    assert_eq!(point.sweeps, 2);
+    assert_eq!(
+        network
+            .solve(&fixed, &rhs, Default::default())
+            .unwrap()
+            .sweeps,
+        1
+    );
+}

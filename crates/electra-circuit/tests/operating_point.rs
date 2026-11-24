@@ -59,7 +59,6 @@ fn unbalanced_bridge_matches_two_independent_nodal_equations() {
 fn invalid_or_unsupported_inputs_fail_explicitly() {
     for text in [
         "",
-        "V1 a b 3",
         "R1 a b 1kk",
         "C1 a 0 1e-9",
         "R1 a a 10",

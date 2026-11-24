@@ -1,4 +1,6 @@
 //! Command-line DC operating-point and transfer analysis.
+mod cli;
+use cli::{Mode, Request};
 use electra_circuit::DcResult;
 use std::{
     env, fs,
@@ -22,21 +24,13 @@ fn write_point(out: &mut impl Write, result: &DcResult<'_>) -> io::Result<()> {
 }
 
 fn run() -> Result<(), Box<dyn std::error::Error>> {
-    let mut arguments = env::args_os().skip(1);
-    let usage = "usage: electra {op|dc} FILE";
-    let (Some(mode), Some(path), None) = (arguments.next(), arguments.next(), arguments.next())
-    else {
-        return Err(usage.into());
-    };
-    let Some(mode @ ("op" | "dc")) = mode.to_str() else {
-        return Err(usage.into());
-    };
-    let circuit = electra_circuit::parse(&fs::read_to_string(path)?)?;
+    let request = Request::parse(env::args_os().skip(1))?;
+    let circuit = electra_circuit::parse(&fs::read_to_string(request.path)?)?;
     let mut out = io::BufWriter::new(io::stdout().lock());
-    match mode {
-        "op" => write_point(&mut out, &circuit.operating_point(Default::default())?)?,
-        _ => {
-            let mut sweep = circuit.dc_sweep(Default::default())?;
+    match request.mode {
+        Mode::OperatingPoint => write_point(&mut out, &circuit.operating_point(request.options)?)?,
+        Mode::Sweep => {
+            let mut sweep = circuit.dc_sweep(request.options)?;
             let name = sweep.source_name();
             while let Some(sample) = sweep.next_point()? {
                 writeln!(out, "{name} = {}", sample.excitation)?;

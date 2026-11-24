@@ -3,9 +3,9 @@ pub use error::SweepError;
 mod grid;
 mod plan;
 
+use super::dc::Session;
 use crate::{Circuit, DcResult, ElectricCurrent, ElectricPotential, SolveOptions};
 use aequitas::systems::si::dimensions;
-use electra_network::PreparedNetwork;
 use grid::Grid;
 pub use grid::LinearSweep;
 pub(crate) use plan::SweepPlan;
@@ -50,18 +50,9 @@ pub struct DcSample<'point, 'circuit> {
 
 /// Streaming transfer analysis. Storage depends on circuit size and is reused at every point.
 pub struct DcSweep<'a> {
-    circuit: &'a Circuit,
-    network: PreparedNetwork<
-        'a,
-        dimensions::ElectricPotential,
-        dimensions::ElectricConductance,
-        dimensions::ElectricCurrent,
-    >,
-    fixed: Vec<Option<ElectricPotential>>,
-    injections: Vec<ElectricCurrent>,
-    baseline: [ElectricCurrent; 2],
+    session: Session<'a>,
+    name: &'a str,
     plan: SweepPlan,
-    output: DcResult<'a>,
     options: SolveOptions,
     finished: bool,
 }
@@ -93,25 +84,17 @@ impl<'a> DcSweep<'a> {
         plan: SweepPlan,
         options: SolveOptions,
     ) -> Result<Self, SweepError> {
-        let part = &circuit.parts[plan.source];
-        let injections = circuit.injections(Some(plan.source));
-        let baseline = [injections[part.positive], injections[part.negative]];
         Ok(Self {
-            circuit,
-            network: PreparedNetwork::new(&circuit.fixed_volts, &circuit.branches)
-                .map_err(SweepError::Network)?,
-            fixed: circuit.fixed_volts.clone(),
-            baseline,
-            injections,
+            session: Session::new(circuit, Some(plan.source)).map_err(SweepError::Network)?,
+            name: &circuit.parts[plan.source].name,
             plan,
-            output: DcResult::new(circuit),
             options,
             finished: false,
         })
     }
     /// Name of the swept source in its original spelling.
     pub fn source_name(&self) -> &'a str {
-        &self.circuit.parts[self.plan.source].name
+        self.name
     }
 
     /// Advance one point. Exhaustion and an error both terminate the stream.
@@ -123,29 +106,13 @@ impl<'a> DcSweep<'a> {
         let Some(excitation) = self.plan.axis.next()? else {
             return Ok(None);
         };
-        let part = &self.circuit.parts[self.plan.source];
-        let mut current_override = None;
-        match excitation {
-            SourceValue::Current(value) => {
-                self.injections[part.positive] = self.baseline[0] - value;
-                self.injections[part.negative] = self.baseline[1] + value;
-                current_override = Some((self.plan.source, value));
-            }
-            SourceValue::Voltage(value) => {
-                let (node, voltage) =
-                    crate::prescribed_voltage(part.positive, part.negative, value);
-                self.fixed[node] = Some(voltage);
-            }
-        }
-        let point = self
-            .network
-            .solve(&self.fixed, &self.injections, self.options)
+        self.session
+            .run(Some((self.plan.source, excitation)), self.options)
             .map_err(|err| SweepError::Point(excitation, err))?;
-        self.output.update(self.circuit, point, current_override);
         self.finished = false;
         Ok(Some(DcSample {
             excitation,
-            result: &self.output,
+            result: &self.session.output,
         }))
     }
 }

@@ -1,4 +1,5 @@
 //! Electrical analyses and projection of network results to named probes.
+mod dc;
 mod operating_point;
 pub(crate) mod sweep;
 pub use operating_point::DcResult;
