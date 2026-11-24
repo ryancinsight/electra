@@ -1,4 +1,4 @@
-use super::{VoltageError, cycles};
+use super::{VoltageError, connectivity::root, cycles};
 use crate::{Element, Part, Resistor};
 use electra_network::Branch;
 
@@ -16,14 +16,6 @@ pub(crate) struct Forest {
     /// Parent-before-child traversal. The reverse order gives source reaction currents.
     pub tree: Vec<TreeEdge>,
     pub branches: Vec<Resistor>,
-}
-
-fn root(links: &mut [usize], mut i: usize) -> usize {
-    while links[i] != i {
-        links[i] = links[links[i]];
-        i = links[i];
-    }
-    i
 }
 
 impl Forest {

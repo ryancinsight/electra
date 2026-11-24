@@ -1,6 +1,6 @@
 # Electra
 
-Electra is the Atlas project for electronic circuit simulation and PCB design. The headless solver supports resistor networks and independent voltage and current sources. The 0.2 roadmap increments add DC transfer sweeps, floating voltage sources, zero-volt current probes and typed hierarchical subcircuits to the 0.1.0 workspace. The v1 target is a native schematic-to-simulation-to-fabrication workflow with KiCad file interchange.
+Electra is the Atlas project for electronic circuit simulation and PCB design. The headless solver supports resistor networks and independent voltage and current sources. The 0.2 roadmap increments add DC transfer sweeps, floating voltage sources, zero-volt current probes, typed hierarchical subcircuits and full modified nodal analysis for independent sources to the 0.1.0 workspace. The v1 target is a native schematic-to-simulation-to-fabrication workflow with KiCad file interchange.
 
 ```sh
 cargo run --locked --offline --bin electra -- op examples/divider.cir
@@ -8,6 +8,7 @@ cargo run --locked --offline --bin electra -- op examples/rail.cir
 cargo run --locked --offline --bin electra -- dc examples/transfer.cir
 cargo run --locked --offline --bin electra -- op examples/floating-source.cir
 cargo run --locked --offline --bin electra -- dc examples/hierarchical-divider.cir
+cargo run --locked --offline --bin electra -- dc examples/hierarchical-divider.cir --solver mna
 ```
 
 The divider yields 6 V at the tap and 3 mA through each resistor. The rail example distributes 100 mA and 200 mA to separate taps of a 5 V supply. Their expected voltages are 4.97 V and 4.95 V.
@@ -24,7 +25,9 @@ Use `electra op FILE` for nominal bias and `electra dc FILE` with one `.dc SOURC
 
 The Rust API accepts a typed voltage or current range through `Circuit::sweep_source`. Use `Circuit::dc_sweep` for a deck-defined range. Each call to `next_point` returns the excitation and borrows the voltages, device currents and residual data for that point. Copy any traces you want to retain before advancing. See the [verification and performance measurements](docs/dc-transfer.md).
 
-The CLI reports node voltages, signed device currents, iteration count and maximum checked original-node KCL imbalance. Both analyses accept `--atol-amps`, `--rtol` and `--max-sweeps` after the filename. They default to 1e−12 A, 1e−10 and 100,000 sweeps. The [floating-source qualification](docs/floating-sources.md) relates these controls to observed errors in individual probes. Gauss–Seidel can converge slowly on long rails and badly conditioned networks. A budget failure returns an error.
+The CLI reports node voltages, signed device currents, iteration count and maximum checked original-node KCL imbalance. The default reduced solver accepts `--atol-amps`, `--rtol` and `--max-sweeps` after the filename. They default to 1e−12 A, 1e−10 and 100,000 sweeps. The [floating-source qualification](docs/floating-sources.md) relates these controls to observed errors in individual probes. Gauss–Seidel can converge slowly on long rails and badly conditioned networks. A budget failure returns an error.
+
+Select `--solver mna` for an operating point or transfer sweep with Athena Core. It solves node voltages and ideal-source currents together and checks current and voltage residuals separately. Use `--atol-volts` and `--max-iterations` for its source-voltage tolerance and iteration budget. The Rust entry points are `operating_point_mna`, `dc_sweep_mna` and `sweep_source_mna`. [Equations, validation and measured cost](docs/modified-nodal-analysis.md)
 
 ## Packages and ownership
 

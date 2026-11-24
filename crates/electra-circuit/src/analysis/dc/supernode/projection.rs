@@ -1,5 +1,6 @@
 use super::Supernodes;
 use crate::analysis::dc::{Excitation, Point, voltage};
+use crate::analysis::excitation::CurrentSum;
 use crate::{Circuit, DcResult, ElectricCurrent, ElectricPotential, SolveError, SolveOptions};
 
 impl Supernodes<'_> {
@@ -17,14 +18,14 @@ impl Supernodes<'_> {
                 return Err(SolveError::Arithmetic);
             }
         }
-        self.imbalance.fill(ElectricCurrent::default());
+        self.imbalance.fill(CurrentSum::default());
         for (index, ((_, out), p)) in output.amperes.iter_mut().zip(&c.parts).enumerate() {
             if let Some(current) =
                 p.passive_current(c, |node| output.volts[node].1, index, excitation)
             {
                 *out = current;
-                self.imbalance[p.positive] += current;
-                self.imbalance[p.negative] -= current;
+                self.imbalance[p.positive].add(current);
+                self.imbalance[p.negative].add(-current);
             }
         }
         for edge in self.forest.tree.iter().rev() {
@@ -39,7 +40,7 @@ impl Supernodes<'_> {
             {
                 return Err(SolveError::Arithmetic);
             }
-            let leaving = self.imbalance[edge.child];
+            let leaving = self.imbalance[edge.child].value();
             if !leaving.as_base().is_finite() {
                 return Err(SolveError::Arithmetic);
             }
@@ -48,14 +49,14 @@ impl Supernodes<'_> {
             } else {
                 leaving
             };
-            self.imbalance[edge.parent] += leaving;
+            self.imbalance[edge.parent].add(leaving);
         }
         // After leaf-to-root reaction recovery only the tree roots can have a
         // nonzero KCL residual. Most well-conditioned points pass the absolute
         // check alone, so incident-current scales are needed only on demand.
         let mut max = ElectricCurrent::default();
         for &root in &self.forest.roots {
-            let r = self.imbalance[root];
+            let r = self.imbalance[root].value();
             if !r.as_base().is_finite() {
                 return Err(SolveError::Arithmetic);
             }
@@ -83,7 +84,8 @@ impl Supernodes<'_> {
             if !scale.as_base().is_finite() {
                 return Err(SolveError::Arithmetic);
             }
-            accepted &= self.imbalance[root].abs() <= options.absolute + scale * options.relative;
+            accepted &=
+                self.imbalance[root].value().abs() <= options.absolute + scale * options.relative;
         }
         Ok((!accepted).then_some(max))
     }

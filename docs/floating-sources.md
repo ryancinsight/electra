@@ -27,7 +27,7 @@ The verifier builds and solves conventional modified nodal equations using Pytho
 | Defaults, 1e−12 A absolute and 1e−10 relative KCL | 64 | 2.575e−9 V | 1.704e−10 A | 12 / 2,368 |
 | Qualification, 1e−14 A absolute and 1e−13 relative KCL | 64 | 4.796e−12 V | 5.469e−13 A | 0 / 2,368 |
 
-Both settings use the same 100,000-sweep budget. The default settings govern nodal imbalance. Tightening them controls individual probe errors on these fixtures. The production backend handles independent sources through supernode reduction. The general indefinite MNA backend and controlled-source cases have separate release gates.
+Both settings use the same 100,000-sweep budget. The default settings govern nodal imbalance. Tightening them controls individual probe errors on these fixtures. The default backend handles independent sources through supernode reduction. The [full MNA qualification](modified-nodal-analysis.md) covers the opt-in Athena solver. Controlled-source cases have a separate release gate.
 
 ```sh
 cargo test --workspace --offline --locked

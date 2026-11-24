@@ -10,6 +10,7 @@ license = "MIT"
 repository = "https://github.com/ryancinsight/electra"
 
 [workspace.dependencies]
+athena-core = { version = "0.4.0", default-features = false }
 aequitas = { version = "0.5.0", default-features = false }
 
 [workspace.lints.rust]

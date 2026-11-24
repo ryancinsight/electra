@@ -1,6 +1,6 @@
 //! Command-line DC operating-point and transfer analysis.
 mod cli;
-use cli::{Mode, Request};
+use cli::{Mode, Request, Solver};
 use electra_circuit::DcResult;
 use std::{
     env,
@@ -8,13 +8,18 @@ use std::{
     process::ExitCode,
 };
 
-fn write_point(out: &mut impl Write, result: &DcResult<'_>) -> io::Result<()> {
+fn write_probes(out: &mut impl Write, result: &DcResult<'_>) -> io::Result<()> {
     for &(name, v) in &result.volts {
         writeln!(out, "V({name}) = {:.12e} V", v.into_base())?;
     }
     for &(name, i) in &result.amperes {
         writeln!(out, "I({name}) = {:.12e} A", i.into_base())?;
     }
+    Ok(())
+}
+
+fn write_point(out: &mut impl Write, result: &DcResult<'_>) -> io::Result<()> {
+    write_probes(out, result)?;
     writeln!(
         out,
         "max KCL residual = {:.6e} A ({} sweeps)",
@@ -23,18 +28,42 @@ fn write_point(out: &mut impl Write, result: &DcResult<'_>) -> io::Result<()> {
     )
 }
 
+fn write_mna(out: &mut impl Write, result: &electra_circuit::MnaPoint<'_>) -> io::Result<()> {
+    write_probes(out, &result.probes)?;
+    writeln!(
+        out,
+        "max KCL residual = {:.6e} A; max source voltage residual = {:.6e} V ({} GMRES iterations)",
+        result.probes.residual_amperes.into_base(),
+        result.residual_volts.into_base(),
+        result.iterations
+    )
+}
+
 fn run() -> Result<(), Box<dyn std::error::Error>> {
     let request = Request::parse(env::args_os().skip(1))?;
     let circuit = electra_circuit::parse_file(request.path)?;
     let mut out = io::BufWriter::new(io::stdout().lock());
-    match request.mode {
-        Mode::OperatingPoint => write_point(&mut out, &circuit.operating_point(request.options)?)?,
-        Mode::Sweep => {
-            let mut sweep = circuit.dc_sweep(request.options)?;
+    match (request.mode, request.solver) {
+        (Mode::OperatingPoint, Solver::Reduced(options)) => {
+            write_point(&mut out, &circuit.operating_point(options)?)?
+        }
+        (Mode::Sweep, Solver::Reduced(options)) => {
+            let mut sweep = circuit.dc_sweep(options)?;
             let name = sweep.source_name();
             while let Some(sample) = sweep.next_point()? {
                 writeln!(out, "{name} = {}", sample.excitation)?;
                 write_point(&mut out, sample.result)?;
+            }
+        }
+        (Mode::OperatingPoint, Solver::Mna(options)) => {
+            write_mna(&mut out, &circuit.operating_point_mna(options)?)?
+        }
+        (Mode::Sweep, Solver::Mna(options)) => {
+            let mut sweep = circuit.dc_sweep_mna(options)?;
+            let name = sweep.source_name();
+            while let Some(sample) = sweep.next_point()? {
+                writeln!(out, "{name} = {}", sample.excitation)?;
+                write_mna(&mut out, sample.result)?;
             }
         }
     }

@@ -1,6 +1,7 @@
 //! Electrical DC analysis for resistor networks and independent sources.
 //! Use [`parse`] to read a deck, [`Circuit::operating_point`] for nominal bias and
-//! [`Circuit::dc_sweep`] to stream a DC transfer curve.
+//! [`Circuit::dc_sweep`] to stream a DC transfer curve. [`Circuit::operating_point_mna`]
+//! and [`Circuit::dc_sweep_mna`] select the full nodal and branch-current system.
 mod analysis;
 mod constraints;
 mod netlist;
@@ -8,6 +9,7 @@ use aequitas::systems::si::dimensions;
 pub use aequitas::systems::si::quantities::{
     Dimensionless, ElectricConductance, ElectricCurrent, ElectricPotential, ElectricalImpedance,
 };
+pub use analysis::mna::{MnaError, MnaOptions, MnaPoint, MnaSample, MnaSweep};
 pub use analysis::{DcResult, DcSample, DcSweep, LinearSweep, SourceValue, SweepError, SweepRange};
 use electra_network::Branch;
 /// Electrical convergence limits measured in amperes and dimensionless relative error.

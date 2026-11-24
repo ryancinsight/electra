@@ -13,6 +13,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "athena-core"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9f4010fb6b71e1c733e80749846f352e68ee1c5d2b6460194bca735eb2418658"
+dependencies = [
+ "eunomia",
+]
+
+[[package]]
 name = "bytemuck"
 version = "1.25.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -37,6 +46,7 @@ name = "electra-circuit"
 version = "0.1.0"
 dependencies = [
  "aequitas",
+ "athena-core",
  "electra-network",
 ]
 

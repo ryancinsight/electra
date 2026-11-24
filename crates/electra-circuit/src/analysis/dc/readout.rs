@@ -2,7 +2,7 @@ use super::{Excitation, Point};
 use crate::{Circuit, DcResult, ElectricCurrent, ElectricPotential, Element, Part, SourceValue};
 
 impl Part {
-    pub(super) fn passive_current(
+    pub(in crate::analysis) fn passive_current(
         &self,
         c: &Circuit,
         voltage_at: impl Fn(usize) -> ElectricPotential,

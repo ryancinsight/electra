@@ -1,4 +1,6 @@
 //! Compile independent voltage constraints once, retaining original node and part identities.
+mod connectivity;
+pub(crate) use connectivity::floating_node;
 mod cycles;
 mod error;
 pub(crate) use error::VoltageError;

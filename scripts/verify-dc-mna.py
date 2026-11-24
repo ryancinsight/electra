@@ -2,6 +2,7 @@
 
 from argparse import ArgumentParser
 from fractions import Fraction
+from math import isfinite
 from pathlib import Path
 from random import Random
 from tempfile import TemporaryDirectory
@@ -96,38 +97,64 @@ def hierarchical_deck(parts):
     return "\n".join(lines)
 
 
-def verify(binary, label, options, absolute, hierarchical=False):
+def qualified(name, hierarchy):
+    return f"X{name}/Xinner/{name[0]}part" if hierarchy else name
+
+
+def check_probes(text, expected, hierarchy, absolute, maximum, context):
+    probes = {}
+    for kind, name, value in re.findall(r"^([IV])\(([^)]+)\) = (\S+) [VA]$", text, re.M):
+        key = (kind, name)
+        if key in probes or not isfinite(float(value)):
+            raise AssertionError(f"{context}: duplicate or nonfinite probe {key}")
+        probes[key] = float(value)
+    outside = 0
+    for (kind, name), want in expected.items():
+        key = (kind, qualified(name, hierarchy) if kind == "I" else name)
+        error = abs(probes.pop(key) - float(want))
+        maximum[kind] = max(maximum[kind], error)
+        relative = 1e-9 * abs(float(want))
+        outside += int(error > (1e-10 if kind == "V" else 1e-12) + relative)
+        if error > absolute[kind] + relative:
+            raise AssertionError(f"{context}: {key} error {error} exceeds {absolute[kind] + relative}")
+    if probes:
+        raise AssertionError(f"{context}: unexpected probes {list(probes)}")
+    return outside
+
+
+def verify(binary, label, options, absolute, hierarchy=False, sweep=False):
+    maximum = {"V": 0.0, "I": 0.0}
+    outside = count = comparisons = 0
     with TemporaryDirectory() as tmp:
         path = Path(tmp) / "source-tree.cir"
-        maximum = {"V": 0.0, "I": 0.0}
-        count = 0
-        outside_gate = 0
         for seed in range(32):
             parts = fixture(seed)
-            expected = reference(parts)
-            if hierarchical:
-                expected = {(kind, f"X{name}/Xinner/{name[0]}part" if kind == "I" else name): value
-                            for (kind, name), value in expected.items()}
+            driven = next(name for name, *_ in parts if name[0] == ("V" if seed % 2 else "I"))
+            source = qualified(driven, hierarchy)
+            grid = list(range(-2, 3)) if seed % 4 < 2 else list(range(2, -3, -1))
+            expected = ([reference([(name, a, b, q if name == driven else v)
+                                    for name, a, b, v in parts]) for q in grid] if sweep
+                        else [reference(parts)])
             for order in (parts, list(reversed(parts))):
-                deck = (hierarchical_deck(order) if hierarchical else
+                deck = (hierarchical_deck(order) if hierarchy else
                         "".join(f"{name} {a} {b} {v}\n" for name, a, b, v in order))
+                if sweep:
+                    deck += f"\n.dc {source} {grid[0]} {grid[-1]} {grid[1]-grid[0]}"
                 path.write_text(deck)
-                result = subprocess.check_output([binary, "op", path, *options], text=True)
-                probes = {(kind, name): float(value) for kind, name, value in
-                          re.findall(r"^([IV])\(([^)]+)\) = (\S+) [VA]$", result, re.M)}
-                if probes.keys() != expected.keys():
-                    raise AssertionError(f"seed {seed}: probe inventory mismatch")
-                for (kind, name), want in expected.items():
-                    error = abs(probes[kind, name] - float(want))
-                    maximum[kind] = max(maximum[kind], error)
-                    relative = 1e-9 * abs(float(want))
-                    gate = (1e-10 if kind == "V" else 1e-12) + relative
-                    outside_gate += int(error > gate)
-                    limit = absolute[kind] + relative
-                    if error > limit:
-                        raise AssertionError(f"seed {seed}, {kind}({name}): {error} exceeds {limit}")
+                output = subprocess.check_output([binary, "dc" if sweep else "op", path, *options], text=True)
+                samples = [output]
+                if sweep:
+                    unit = "V" if driven[0] == "V" else "A"
+                    groups = re.split(rf"^{re.escape(source)} = (\S+) {unit}$", output, flags=re.M)
+                    if groups[0].strip() or [float(q) for q in groups[1::2]] != grid:
+                        raise AssertionError(f"seed {seed}: excitation sequence differs from {grid}")
+                    samples = groups[2::2]
+                for sample, oracle in zip(samples, expected, strict=True):
+                    outside += check_probes(sample, oracle, hierarchy, absolute, maximum, f"seed {seed}")
+                    comparisons += len(oracle)
                 count += 1
-        print(f"{label}: {count} decks, largest errors {maximum['V']:.3e} V and {maximum['I']:.3e} A, {outside_gate} probes outside the 0.2 fixture gate")
+    print(f"{label}: {count} decks, {comparisons} probe comparisons, largest errors "
+          f"{maximum['V']:.3e} V and {maximum['I']:.3e} A, {outside} outside the 0.2 fixture gate")
 
 
 if __name__ == "__main__":
@@ -135,8 +162,13 @@ if __name__ == "__main__":
     parser.add_argument("binary", nargs="?", type=Path, default=Path("target/release/electra"))
     parser.add_argument("--hierarchical", action="store_true",
                         help="represent each device as a nested instance with a typed override")
+    parser.add_argument("--solver", choices=["reduced", "mna"], default="reduced")
+    parser.add_argument("--sweep", action="store_true", help="verify five points per deck against separate exact solves")
     args = parser.parse_args()
+    solver_options = []
+    if args.solver == "mna":
+        solver_options += ["--solver", "mna", "--atol-volts", "1e-12"]
     layout = "hierarchical" if args.hierarchical else "flat"
-    verify(args.binary.resolve(), f"{layout} default", [], {"V": 2e-8, "I": 2e-9}, args.hierarchical)
-    verify(args.binary.resolve(), f"{layout} qualification", ["--atol-amps", "1e-14", "--rtol", "1e-13"],
-           {"V": 1e-10, "I": 1e-12}, args.hierarchical)
+    verify(args.binary.resolve(), f"{args.solver} {layout} default", solver_options, {"V": 2e-8, "I": 2e-9}, args.hierarchical, args.sweep)
+    verify(args.binary.resolve(), f"{args.solver} {layout} qualification", [*solver_options, "--atol-amps", "1e-14", "--rtol", "1e-13"],
+           {"V": 1e-10, "I": 1e-12}, args.hierarchical, args.sweep)

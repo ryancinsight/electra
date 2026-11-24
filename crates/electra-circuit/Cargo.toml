@@ -1,6 +1,6 @@
 [package]
 name = "electra-circuit"
-description = "Electrical DC operating points for passive resistor networks"
+description = "Typed electrical DC operating points and transfer sweeps for hierarchical independent-source circuits"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -8,6 +8,7 @@ license.workspace = true
 repository.workspace = true
 
 [dependencies]
+athena-core.workspace = true
 aequitas.workspace = true
 electra-network = { path = "../electra-network", version = "0.1.0" }
 

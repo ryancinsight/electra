@@ -18,8 +18,14 @@ impl Axis {
 
 #[derive(Clone, Copy, Debug)]
 pub(crate) struct SweepPlan {
-    pub(super) source: usize,
+    pub(in crate::analysis) source: usize,
     pub(super) axis: Axis,
+}
+
+impl SweepPlan {
+    pub(in crate::analysis) fn next_value(&mut self) -> Result<Option<SourceValue>, SweepError> {
+        self.axis.next()
+    }
 }
 
 impl Circuit {
@@ -30,7 +36,11 @@ impl Circuit {
             .ok_or_else(|| SweepError::UnknownSource(name.to_owned()))
     }
 
-    pub(super) fn plan(&self, source: &str, range: SweepRange) -> Result<SweepPlan, SweepError> {
+    pub(in crate::analysis) fn plan(
+        &self,
+        source: &str,
+        range: SweepRange,
+    ) -> Result<SweepPlan, SweepError> {
         self.plan_at(self.source(source)?, range)
     }
 

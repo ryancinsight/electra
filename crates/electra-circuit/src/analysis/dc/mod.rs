@@ -2,8 +2,9 @@
 mod readout;
 mod supernode;
 
+use super::excitation::{CurrentSum, Excitation, injections, voltage};
 use crate::{
-    Circuit, DcResult, ElectricCurrent, ElectricPotential, Element, Part, SolveError, SolveOptions,
+    Circuit, DcResult, ElectricCurrent, ElectricPotential, Element, SolveError, SolveOptions,
     SourceValue, constraints::Constraints,
 };
 use aequitas::systems::si::dimensions;
@@ -17,46 +18,11 @@ type ElectricalNetwork<'a> = PreparedNetwork<
     dimensions::ElectricCurrent,
 >;
 type Point = OperatingPoint<dimensions::ElectricPotential, dimensions::ElectricCurrent>;
-type Excitation = Option<(usize, SourceValue)>;
-
-fn voltage(part: &Part, index: usize, excitation: Excitation) -> ElectricPotential {
-    if let Some((swept, SourceValue::Voltage(applied))) = excitation
-        && swept == index
-    {
-        return applied;
-    }
-    let Element::Voltage { volts, .. } = part.element else {
-        unreachable!()
-    };
-    volts
-}
-
-fn injections(
-    c: &Circuit,
-    count: usize,
-    swept: Option<usize>,
-    group: impl Fn(usize) -> usize,
-) -> Vec<ElectricCurrent> {
-    let mut rhs = vec![ElectricCurrent::default(); count];
-    for (i, p) in c.parts.iter().enumerate() {
-        if Some(i) != swept
-            && let Element::Current { amperes } = p.element
-        {
-            let (a, b) = (group(p.positive), group(p.negative));
-            if a != b {
-                rhs[a] -= amperes;
-                rhs[b] += amperes;
-            }
-        }
-    }
-    rhs
-}
-
 struct CurrentPorts {
     a: usize,
     b: usize,
-    base_a: ElectricCurrent,
-    base_b: ElectricCurrent,
+    base_a: CurrentSum,
+    base_b: CurrentSum,
 }
 
 pub(super) struct Session<'a> {
@@ -97,6 +63,7 @@ impl<'a> Session<'a> {
                 base_b: rhs[b],
             })
         });
+        let rhs = rhs.into_iter().map(CurrentSum::value).collect();
         let network =
             ElectricalNetwork::new(&fixed, branches).map_err(|err| match (&coupled, err) {
                 (Some(s), SolveError::Floating(group)) => {
@@ -129,8 +96,8 @@ impl<'a> Session<'a> {
                 }
                 SourceValue::Current(i) => {
                     if let Some(ports) = &self.ports {
-                        self.rhs[ports.a] = ports.base_a - i;
-                        self.rhs[ports.b] = ports.base_b + i;
+                        self.rhs[ports.a] = ports.base_a.with(-i);
+                        self.rhs[ports.b] = ports.base_b.with(i);
                     }
                 }
             }

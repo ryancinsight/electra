@@ -103,7 +103,7 @@ impl<'a> DcSweep<'a> {
             return Ok(None);
         }
         self.finished = true;
-        let Some(excitation) = self.plan.axis.next()? else {
+        let Some(excitation) = self.plan.next_value()? else {
             return Ok(None);
         };
         self.session
