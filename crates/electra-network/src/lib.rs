@@ -6,4 +6,4 @@ mod relaxation;
 mod solve;
 pub use branch::Branch;
 pub use relaxation::{RelaxationRow, sweep};
-pub use solve::{Error, OperatingPoint, SolveOptions, solve};
+pub use solve::{Error, OperatingPoint, PreparedNetwork, SolveOptions, solve};

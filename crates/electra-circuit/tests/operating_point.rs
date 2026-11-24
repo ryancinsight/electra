@@ -60,7 +60,7 @@ fn invalid_or_unsupported_inputs_fail_explicitly() {
     for text in [
         "",
         "V1 a b 3",
-        "R1 a b 1k",
+        "R1 a b 1kk",
         "C1 a 0 1e-9",
         "R1 a a 10",
         "V1 a 0 1\nV2 a 0 1",

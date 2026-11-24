@@ -20,7 +20,10 @@ Use the checkboxes for evidence state. The [design evidence](design-evidence.md)
 - [ ] Reproduce an eSim-style subcircuit with two parameterized instances. A resistor override in ohms succeeds. A time-valued override fails with instance and parameter names. Check ideal-source voltage/current blocks and their dimensioned residuals.
 
 - [ ] Check floating and controlled voltage/current sources, a supernode, zero-volt current sensing, source reversal, conflicting constraints and a floating island. For well-conditioned fixtures, require 1e−9 relative plus 1e−10 V or 1e−12 A absolute.
-- [ ] Compare a DC transfer sweep against an analytical gain and verify one compiled topology is reused. Test hierarchy, name collisions, unit suffixes and bad cards with exact file/line diagnostics.
+- [x] Sweep independent current sources and ground-referenced voltage sources in both directions using the CLI and typed API. Match the 2/3 divider gain, signed source currents and a 25-point bridge against its two-equation solution. Verify decimal endpoints, nondivisible ranges, numerical failures and nominal-bias isolation.
+- [x] Reuse one compiled topology and bounded workspace per sweep. Validate each point against the original physical conservation criterion. Measure elapsed time and peak live solver heap for 101 points at 100, 1,000 and 10,000 free nodes. See the [fixture and results](dc-transfer.md).
+- [x] Parse case-insensitive T/G/MEG/K/M/U/N/P/F scale factors for part and sweep cards. Reject bad units, source types, ranges, trailing fields and duplicate controls with a one-based deck line.
+- [ ] Test hierarchical name collisions, parameter-unit scoping, and file/line diagnostics across included decks.
 - [ ] Demonstrate an Atlas-backed, scaled indefinite solve. Compare to analytical cases and track residual, pivot failures, allocations, peak memory and runtime for 100, 1,000 and 10,000 elements. Record all provider and transitive packages.
 
 <a id="v03"></a>

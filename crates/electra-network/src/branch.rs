@@ -14,6 +14,15 @@ pub struct Branch<G, T = f64> {
 }
 
 impl<G, T: Copy> Branch<G, T> {
+    pub(crate) fn free_ends(&self, fixed: [bool; 2]) -> impl Iterator<Item = (usize, usize)> {
+        [
+            (self.from, self.to, fixed[0]),
+            (self.to, self.from, fixed[1]),
+        ]
+        .into_iter()
+        .filter_map(|(row, other, prescribed)| (!prescribed).then_some((row, other)))
+    }
+
     /// Scatter the reduced nodal stamp, eliminating prescribed endpoints.
     /// The caller validates the branch and sets identity rows if it stores fixed nodes.
     /// The callbacks are statically dispatched and need no temporary matrix.
@@ -26,17 +35,13 @@ impl<G, T: Copy> Branch<G, T> {
         Quantity<T, G>: Neg<Output = Quantity<T, G>> + Mul<Quantity<T, P>, Output = Quantity<T, F>>,
     {
         let g = self.conductance;
-        for (i, j, here, there) in [
-            (self.from, self.to, fixed[0], fixed[1]),
-            (self.to, self.from, fixed[1], fixed[0]),
-        ] {
-            if here.is_none() {
-                matrix(i, i, g);
-                if let Some(value) = there {
-                    rhs(i, g * value);
-                } else {
-                    matrix(i, j, -g);
-                }
+        for (i, j) in self.free_ends(fixed.map(|v| v.is_some())) {
+            matrix(i, i, g);
+            let other = if i == self.from { fixed[1] } else { fixed[0] };
+            if let Some(value) = other {
+                rhs(i, g * value);
+            } else {
+                matrix(i, j, -g);
             }
         }
     }

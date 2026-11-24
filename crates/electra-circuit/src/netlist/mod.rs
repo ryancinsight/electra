@@ -1,8 +1,11 @@
+mod control;
+mod number;
 use super::{
     Circuit, ElectricConductance, ElectricCurrent, ElectricPotential, ElectricalImpedance, Element,
     Part,
 };
 use electra_network::Branch;
+use number::magnitude;
 use std::{
     collections::{HashMap, HashSet},
     fmt,
@@ -30,26 +33,27 @@ impl Circuit {
             let index = self.names.len();
             self.names.push(name.to_owned());
             self.fixed_volts.push(None);
-            self.injected_amps.push(ElectricCurrent::default());
             index
         })
     }
 }
 
 /// Parse four-field R, I and ground-referenced V cards. Values use SI base
-/// units and decimal/scientific notation. Names are ASCII-case-insensitive.
-/// Blank lines, whole-line '*' comments, '.op' and a final '.end' are accepted.
+/// units, decimal/scientific notation and optional SPICE scale factors. Names are ASCII-case-insensitive.
+/// Blank lines, whole-line '*' comments, '.op', a single '.dc source start stop step'
+/// and a final '.end' are accepted. A sweep may precede its source.
 pub fn parse(text: &str) -> Result<Circuit, ParseError> {
     let mut circuit = Circuit {
         names: vec!["0".into()],
         fixed_volts: vec![Some(ElectricPotential::default())],
-        injected_amps: vec![ElectricCurrent::default()],
+        sweep: None,
         branches: vec![],
         parts: vec![],
     };
     let mut nodes = HashMap::from([("0".to_string(), 0)]);
     let mut names = HashSet::new();
     let mut ended = false;
+    let mut directive = None;
     for (index, raw) in text.lines().enumerate() {
         let line = raw.trim();
         let err = |message: &str| ParseError {
@@ -70,6 +74,17 @@ pub fn parse(text: &str) -> Result<Circuit, ParseError> {
             continue;
         }
         let mut fields = line.split_whitespace();
+        if fields
+            .clone()
+            .next()
+            .is_some_and(|word| word.eq_ignore_ascii_case(".dc"))
+        {
+            if directive.is_some() {
+                return Err(err("duplicate .dc directive"));
+            }
+            directive = Some((index + 1, line));
+            continue;
+        }
         let (Some(name), Some(p), Some(n), Some(value), None) = (
             fields.next(),
             fields.next(),
@@ -88,11 +103,9 @@ pub fn parse(text: &str) -> Result<Circuit, ParseError> {
         if a == b {
             return Err(err("element endpoints must differ"));
         }
-        let value = value
-            .parse::<f64>()
-            .ok()
-            .filter(|v| v.is_finite())
-            .ok_or_else(|| err("expected a finite SI value in decimal or scientific notation"))?;
+        let value = magnitude(value).ok_or_else(|| {
+            err("expected a finite SI value with an optional supported scale factor")
+        })?;
         let element = match name.as_bytes()[0].to_ascii_uppercase() {
             b'R' => {
                 let resistance = ElectricalImpedance::from_base(value);
@@ -100,17 +113,16 @@ pub fn parse(text: &str) -> Result<Circuit, ParseError> {
                 if resistance <= ElectricalImpedance::default() || !g.as_base().is_finite() {
                     return Err(err("resistance must have finite positive conductance"));
                 }
+                let branch = circuit.branches.len();
                 circuit.branches.push(Branch {
                     from: a,
                     to: b,
                     conductance: g,
                 });
-                Element::Resistor { siemens: g }
+                Element::Resistor { branch }
             }
             b'I' => {
                 let value = ElectricCurrent::from_base(value);
-                circuit.injected_amps[a] -= value;
-                circuit.injected_amps[b] += value;
                 Element::Current { amperes: value }
             }
             b'V' => {
@@ -118,7 +130,7 @@ pub fn parse(text: &str) -> Result<Circuit, ParseError> {
                 if a != 0 && b != 0 {
                     return Err(err("0.1 voltage sources require one endpoint at node 0"));
                 }
-                let (prescribed, voltage) = if b == 0 { (a, value) } else { (b, -value) };
+                let (prescribed, voltage) = crate::prescribed_voltage(a, b, value);
                 if circuit.fixed_volts[prescribed].replace(voltage).is_some() {
                     return Err(err(
                         "multiple ideal voltage sources constrain the same node",
@@ -140,6 +152,9 @@ pub fn parse(text: &str) -> Result<Circuit, ParseError> {
             line: 1,
             message: "empty circuit".into(),
         });
+    }
+    if let Some((line, card)) = directive {
+        circuit.sweep = Some(control::parse_card(&circuit, line, card)?);
     }
     Ok(circuit)
 }

@@ -14,7 +14,7 @@ For a two-terminal impedance analogy, voltage corresponds to pressure and curren
 
 The numerical kernel accepts indexed endpoints, coefficients and borrowed iterators. CFDrs can stamp directly into Leto COO and its own RHS buffer. The driver can borrow its CSR neighbour runs and choose its own sweep count. The electrical API applies circuit conventions and owns the neutral/reference node. Topology and electrical element behavior have separate owners so downstream consumers can depend on the small network crate without importing an EDA application.
 
-Keep one circuit connectivity model for CLI, editors, KiCad interchange and simulation. Bind device models explicitly to symbol pins and physical pads. Allocate only at topology compilation, assembly or result boundaries where feasible. Future analyses should reuse topology, symbolic sparsity and workspace across sweeps. Group devices by concrete model for stamped hot loops. Resolve a solver/backend once per analysis and measure specialization time, binary size, allocations and throughput before adding another specialization.
+Keep one circuit connectivity model for CLI, editors, KiCad interchange and simulation. Bind device models explicitly to symbol pins and physical pads. Allocate only at topology compilation, assembly or result boundaries where feasible. DC transfer analysis now reuses its topology, sparse row storage and solver workspace across points. Group devices by concrete model for stamped hot loops. Resolve a solver/backend once per analysis and measure specialization time, binary size, allocations and throughput before adding another specialization.
 
 | Planned capability | Atlas owner or intended integration |
 | --- | --- |
@@ -23,6 +23,12 @@ Keep one circuit connectivity model for CLI, editors, KiCad interchange and simu
 | Time integration, spectral analysis, parallel parameter studies | Evaluate Horae for stiff DAEs and event handling, Apollo for spectra, Moirai for work scheduling. Preserve a deterministic serial solve. |
 | Geometry, material coefficients, multiphysics exchange, optional device compute | Gaia, Proteus, Harmonia and Hephaestus. Electra owns electrical laws and boundary conditions. Add a GPU route only with host parity and a measured benefit. |
 | Model/results storage and native editor | Consus for structured storage where required, Metis for native interaction, and Iris for plots, geometry and field visualization. Keep the headless design and simulation APIs callable without a display. |
+
+## Prepared DC analysis
+
+`electra-network::PreparedNetwork` borrows passive branches. It classifies fixed nodes, checks that each component has a reference, and packs free-node neighbour runs in input order. The temporary row offsets also support the anchoring check. The solver keeps the resulting row lengths, diagonals and fixed-neighbour terms, then releases the compilation scratch. The generic relaxation kernel consumes the runs by iterator. Each solve rebuilds its right-hand side and initial guess in place and checks physical branch fluxes against the typed tolerances. The one-shot `solve` entry point moves the same workspace’s solution into an owned result.
+
+`electra-circuit` resolves a sweep source once, builds the contributions of all other current sources once and updates only the swept terminals between points. Omitting the swept source before summing keeps a large nominal excitation from erasing small independent loads. DC analysis projects both nominal and swept solutions into the same named probe representation. A borrowed readout limits result storage to one point. A network workspace can retry an error. A circuit sweep returns its error once and terminates, allowing clients to retain the valid prefix.
 
 ## Atlas-only dependency rule
 

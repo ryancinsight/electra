@@ -150,3 +150,45 @@ fn disconnected_but_individually_referenced_components_are_defined() {
         [-0.5, 0., 0.25, 0.].map(ElectricCurrent::from_base)
     );
 }
+
+#[test]
+fn prepared_topology_rejects_mask_changes_and_recovers_from_failures() {
+    use electra_network::PreparedNetwork;
+    let edges: Vec<_> = (0..3)
+        .map(|i| Branch {
+            from: i,
+            to: i + 1,
+            conductance: ElectricConductance::from_base(1.0),
+        })
+        .collect();
+    let mut fixed = [Some(1.), None, None, Some(0.5)].map(|v| v.map(ElectricPotential::from_base));
+    let inj = [0., 0.25, -0.125, 0.].map(ElectricCurrent::from_base);
+    let mut prepared = PreparedNetwork::new(&fixed, &edges).unwrap();
+    let bad_budget = SolveOptions {
+        max_sweeps: 1,
+        ..Default::default()
+    };
+    assert!(matches!(
+        prepared.solve(&fixed, &inj, bad_budget),
+        Err(Error::NoConvergence { .. })
+    ));
+    fixed.swap(0, 1);
+    assert!(matches!(
+        prepared.solve(&fixed, &inj, Default::default()),
+        Err(Error::InvalidInput)
+    ));
+    fixed.swap(0, 1);
+    assert!(matches!(
+        prepared.solve(&fixed, &inj[..3], Default::default()),
+        Err(Error::InvalidInput)
+    ));
+    for change in [3.0, -1.0, 0.0] {
+        fixed[3] = Some(ElectricPotential::from_base(change));
+        let p = prepared.solve(&fixed, &inj, Default::default()).unwrap();
+        let q = solve(&fixed, &inj, &edges, Default::default()).unwrap();
+        assert_eq!(p.potentials, q.potentials);
+        assert_eq!(p.reactions, q.reactions);
+        assert_eq!(p.sweeps, q.sweeps);
+        assert_eq!(p.max_residual, q.max_residual);
+    }
+}
