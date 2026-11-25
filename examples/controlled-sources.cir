@@ -1,13 +1,1 @@
-* A current-sensing amplifier with four independent gain checks.
-Vin drive 0 2
-Rsense drive sense 1k
-Vprobe sense 0 0
-Eamp ev 0 drive 0 -2
-Re ev 0 2k
-Gout gi 0 drive 0 1m
-Rg gi 0 2k
-Fmirror fi 0 Vprobe -3
-Rf fi 0 1k
-Hout hv 0 Vprobe 2k
-Rh hv 0 1k
-.dc Vin -2 2 1
+.include ../crates/electra-circuit/examples/controlled-sources.cir

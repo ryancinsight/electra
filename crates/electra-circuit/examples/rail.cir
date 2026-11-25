@@ -1,0 +1,8 @@
+* Two 0.1-ohm PCB segments feed an individual 100 mA and 200 mA load.
+Vrail connector 0 5
+Rfirst connector tap 0.1
+Rsecond tap far 0.1
+Inear tap 0 0.1
+Ifar far 0 0.2
+.op
+.end

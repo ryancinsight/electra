@@ -1,0 +1,7 @@
+* An isolated 3 V source between two resistive returns, sensed through Vprobe.
+Vcell a b 3
+Vprobe b tap 0
+Ra a 0 1k
+Rb tap 0 2k
+.dc Vcell -3 3 1
+.end
