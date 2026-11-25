@@ -1,6 +1,1 @@
-* A 9 V source feeds a 1 kohm / 2 kohm divider. Expect 6 V and 3 mA.
-V1 in 0 9
-R1 in out 1000
-R2 out 0 2000
-.op
-.end
+.include ../crates/electra-circuit/examples/divider.cir

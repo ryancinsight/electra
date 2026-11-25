@@ -69,10 +69,7 @@ fn cli_sweeps_the_floating_cell_and_signed_probe() {
     let result = Command::new(env!("CARGO_BIN_EXE_electra"))
         .args([
             "dc",
-            concat!(
-                env!("CARGO_MANIFEST_DIR"),
-                "/../../examples/floating-source.cir"
-            ),
+            concat!(env!("CARGO_MANIFEST_DIR"), "/examples/floating-source.cir"),
         ])
         .output()
         .unwrap();
@@ -85,10 +82,7 @@ fn cli_sweeps_the_floating_cell_and_signed_probe() {
 
 #[test]
 fn cli_accepts_typed_limits_and_rejects_ambiguous_or_invalid_options() {
-    let deck = concat!(
-        env!("CARGO_MANIFEST_DIR"),
-        "/../../examples/floating-source.cir"
-    );
+    let deck = concat!(env!("CARGO_MANIFEST_DIR"), "/examples/floating-source.cir");
     let run = |flags: &[&str]| {
         Command::new(env!("CARGO_BIN_EXE_electra"))
             .args(["dc", deck])

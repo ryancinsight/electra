@@ -62,7 +62,7 @@ fn compare_dividers(h: &DcResult<'_>, flat: &DcResult<'_>, rail: f64) {
 fn public_example_matches_every_flat_probe_and_closed_form_at_bias_and_each_sweep_point() {
     let file = concat!(
         env!("CARGO_MANIFEST_DIR"),
-        "/../../examples/hierarchical-divider.cir"
+        "/examples/hierarchical-divider.cir"
     );
     let h = parse_file(file).unwrap();
     let f = parse("Vin rail 0 9\nRu1 rail j1 1k\nVs1 j1 left 0\nRl1 left 0 2k\nRu2 rail j2 2k\nVs2 j2 right 0\nRl2 right 0 1k\n.dc Vin 0 9 3").unwrap();

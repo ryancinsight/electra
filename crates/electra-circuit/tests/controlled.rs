@@ -57,7 +57,7 @@ fn gains(r: &DcResult<'_>, v: f64) {
 }
 #[test]
 fn all_four_gains_and_load_currents_follow_the_drive_through_zero() {
-    let c = parse(include_str!("../../../examples/controlled-sources.cir")).unwrap();
+    let c = parse(include_str!("../examples/controlled-sources.cir")).unwrap();
     assert!(c.requires_mna());
     gains(
         &c.operating_point_mna(Default::default()).unwrap().probes,
@@ -82,7 +82,7 @@ fn cli_selects_mna_for_both_modes_and_rejects_forced_reduction() {
                 mode,
                 concat!(
                     env!("CARGO_MANIFEST_DIR"),
-                    "/../../examples/controlled-sources.cir"
+                    "/examples/controlled-sources.cir"
                 ),
             ])
             .args(opts)

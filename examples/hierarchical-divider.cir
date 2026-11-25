@@ -1,8 +1,1 @@
-* Two instances of one model. Their internal junctions have independent identities.
-.include "subcircuits/divider.cir"
-.param trim=2kOhm
-Vin rail 0 9
-Xleft rail 0 left divider
-Xright rail 0 right divider upper={trim} lower=1kOhm
-.dc Vin 0 9 3
-.end
+.include ../crates/electra-circuit/examples/hierarchical-divider.cir

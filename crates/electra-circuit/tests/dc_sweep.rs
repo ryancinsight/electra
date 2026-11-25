@@ -14,7 +14,7 @@ fn current(start: f64, stop: f64, step: f64) -> SweepRange {
 
 #[test]
 fn divider_transfer_reuses_probe_buffers_and_leaves_nominal_bias_available() {
-    let c = parse(include_str!("../../../examples/transfer.cir")).unwrap();
+    let c = parse(include_str!("../examples/transfer.cir")).unwrap();
     let mut run = c.dc_sweep(Default::default()).unwrap();
     assert_eq!(run.source_name(), "Vin");
     let mut buffers = None;
@@ -145,7 +145,7 @@ fn extreme_finite_span_and_unrepresentable_adjacent_values() {
 
 #[test]
 fn cli_reports_all_seven_transfer_points_and_retains_op_semantics() {
-    let deck = concat!(env!("CARGO_MANIFEST_DIR"), "/../../examples/transfer.cir");
+    let deck = concat!(env!("CARGO_MANIFEST_DIR"), "/examples/transfer.cir");
     let invoke = |mode| {
         let output = Command::new(env!("CARGO_BIN_EXE_electra"))
             .args([mode, deck])

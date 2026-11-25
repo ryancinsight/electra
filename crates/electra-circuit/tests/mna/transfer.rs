@@ -38,7 +38,7 @@ fn sweep_reuses_buffers_preserves_orientation_and_nominal_source() {
 fn qualified_sweeps_read_included_models_and_cli_rejects_misapplied_flags() {
     let file = concat!(
         env!("CARGO_MANIFEST_DIR"),
-        "/../../examples/hierarchical-divider.cir"
+        "/examples/hierarchical-divider.cir"
     );
     let c = parse_file(file).unwrap();
     let mut s = c.dc_sweep_mna(Default::default()).unwrap();

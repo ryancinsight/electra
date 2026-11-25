@@ -12,7 +12,7 @@ fn near<D>(actual: aequitas::Quantity<f64, D>, expected: f64, tolerance: f64) {
 
 #[test]
 fn divider_matches_voltages_signed_currents_and_power_balance() {
-    let c = parse(include_str!("../../../examples/divider.cir")).unwrap();
+    let c = parse(include_str!("../examples/divider.cir")).unwrap();
     let result = c.operating_point(Default::default()).unwrap();
     let v: HashMap<_, _> = result.volts.into_iter().collect();
     let i: HashMap<_, _> = result.amperes.into_iter().collect();
@@ -27,7 +27,7 @@ fn divider_matches_voltages_signed_currents_and_power_balance() {
 
 #[test]
 fn rail_drop_with_distributed_loads_matches_cumulative_ir() {
-    let c = parse(include_str!("../../../examples/rail.cir")).unwrap();
+    let c = parse(include_str!("../examples/rail.cir")).unwrap();
     let result = c.operating_point(Default::default()).unwrap();
     let v: HashMap<_, _> = result.volts.into_iter().collect();
     let i: HashMap<_, _> = result.amperes.into_iter().collect();
@@ -82,7 +82,7 @@ fn cli_runs_the_checked_in_deck() {
     let output = Command::new(env!("CARGO_BIN_EXE_electra"))
         .args([
             "op",
-            concat!(env!("CARGO_MANIFEST_DIR"), "/../../examples/divider.cir"),
+            concat!(env!("CARGO_MANIFEST_DIR"), "/examples/divider.cir"),
         ])
         .output()
         .unwrap();
