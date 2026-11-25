@@ -50,4 +50,6 @@ cargo run --release --locked --manifest-path crates/electra-ac/Cargo.toml --exam
 
 `electra-iris-ac` wraps two Iris 0.1.4 `SeriesView` instances around borrowed frequency, dimensionless magnitude and angle slices. The selected index returns the actual solver coordinate and both ordinates. The cursor regression reads exactly 1,000 Hz from an explicitly requested 1,000 Hz sample. A compile-fail test rejects a voltage slice as a gain axis. This adapter prepares headless data for a Metis view.
 
-General R/C netlist stamping, arbitrary connectivity, inductors, coupled devices, noise-density types, calibrated dB references and the native Metis Bode/PSD view remain open. A future frequency-domain matrix solve can use these loaded ladders and the independent nodal reference as regression fixtures.
+RC ladders now propagate independent resistor sources and expose a borrowed Iris voltage PSD trace. [Thermal-noise model](thermal-noise.md)
+
+General R/C netlist stamping, arbitrary connectivity, coupled devices, calibrated dB references and the native Metis Bode/PSD view remain open. A future frequency-domain matrix solve can use these loaded ladders and the independent nodal reference as regression fixtures.
