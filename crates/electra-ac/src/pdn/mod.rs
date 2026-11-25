@@ -2,27 +2,9 @@
 mod branch;
 mod parallel;
 
-use crate::{Complex64, ElectricalImpedance, Frequency};
+pub use crate::PortImpedance;
+use crate::{ElectricalImpedance, Frequency};
 pub use branch::SeriesCapacitor;
-
-/// Impedance looking into the positive bank terminal with the return grounded.
-#[derive(Clone, Copy, Debug)]
-pub enum PortImpedance {
-    /// Zero port admittance, including an empty bank or capacitors at DC.
-    Open,
-    /// Complex impedance in Ω, including zero for an ideal short circuit.
-    Finite(ElectricalImpedance<Complex64>),
-}
-
-impl PortImpedance {
-    /// Magnitude in Ω. An open port has positive infinite magnitude.
-    pub fn magnitude(self) -> ElectricalImpedance {
-        ElectricalImpedance::from_base(match self {
-            Self::Open => f64::INFINITY,
-            Self::Finite(z) => z.as_base().re.hypot(z.as_base().im),
-        })
-    }
-}
 
 /// Invalid physical input or unrepresentable arithmetic in a bank evaluation.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]

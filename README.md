@@ -1,6 +1,6 @@
 # Electra
 
-Electra is the Atlas project for electronic circuit simulation and PCB design. The headless solver supports linear DC resistor networks with independent sources and all four linear controlled-source families. The 0.2 roadmap increments add DC transfer sweeps, floating voltage sources, zero-volt current probes, typed hierarchical subcircuits and full modified nodal analysis for feedback circuits to the 0.1.0 workspace. The 0.3 work includes loaded RC ladder response, resistor thermal noise and complex input impedance for capacitor banks with ESR and ESL. The v1 target is a native schematic-to-simulation-to-fabrication workflow with KiCad file interchange.
+Electra is the Atlas project for electronic circuit simulation and PCB design. The headless solver supports linear DC resistor networks with independent sources and all four linear controlled-source families. The 0.2 roadmap increments add DC transfer sweeps, floating voltage sources, zero-volt current probes, typed hierarchical subcircuits and full modified nodal analysis for feedback circuits to the 0.1.0 workspace. The 0.3 work includes loaded RC ladder response, resistor thermal noise, capacitor-bank input impedance with ESR and ESL, and coupled-winding and ideal-transformer response. The v1 target is a native schematic-to-simulation-to-fabrication workflow with KiCad file interchange.
 
 ```sh
 cargo run --locked --offline --bin electra -- op examples/divider.cir
@@ -58,13 +58,21 @@ cargo run --release --locked -p electra-ac --bin electra-pdn -- 100 100000000 10
 
 The CSV reports the complex impedance and magnitude. The typed API also accepts DC. [Circuit model and verification](docs/capacitor-bank.md)
 
+## Coupled windings and ideal transformers
+
+Sweep a 1 mH primary and 4 mH secondary with coupling 0.97 and a 47 Ω load. The CSV gives complex secondary voltage gain and primary input impedance. The same command accepts `ideal` with a signed secondary-to-primary turns ratio. [Examples, limits and verification](docs/coupled-transformers.md)
+
+```sh
+cargo run --release --locked -p electra-ac --bin electra-transformer -- coupled 1 100000000 101 0.001 0.004 0.97 47
+```
+
 ## Packages and ownership
 
 | Package | Responsibility |
 | --- | --- |
 | `electra-network` | Generic two-terminal stamps with fixed-end elimination, ordered relaxation sweeps, anchored linear-network solving and conservation diagnostics. The stamp and sweep monomorphize for the caller’s scalar and storage iterator. |
 | `electra-circuit` | Electrical netlist parsing, SI conventions, independent source constraints, branch currents, DC analysis and the `electra` binary. |
-| `electra-ac` | Borrowed RC ladder, thermal-noise and capacitor-bank models, streaming frequency sweeps, and the `electra-rc` and `electra-pdn` binaries. |
+| `electra-ac` | RC ladder, thermal-noise, capacitor-bank and transformer models with streaming AC sweeps. CLI entry points are `electra-rc`, `electra-pdn` and `electra-transformer`. |
 
 The workspace crates use Aequitas for dimensional arithmetic. For example, a node voltage multiplied by a branch current produces a value of type `Power`, and a voltage-valued current tolerance fails compilation. The current toolchain floor is Rust 1.95. With dependencies cached, the workspace builds offline. The locked graph has no third-party direct dependencies and nine inherited third-party package versions through Aequitas/Eunomia. See the [architecture and dependency policy](docs/architecture.md).
 

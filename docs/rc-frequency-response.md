@@ -52,4 +52,4 @@ cargo run --release --locked --manifest-path crates/electra-ac/Cargo.toml --exam
 
 RC ladders now propagate independent resistor sources and expose a borrowed Iris voltage PSD trace. [Thermal-noise model](thermal-noise.md)
 
-General R/C netlist stamping, arbitrary connectivity, coupled devices, calibrated dB references and the native Metis Bode/PSD view remain open. A future frequency-domain matrix solve can use these loaded ladders and the independent nodal reference as regression fixtures.
+Coupled windings have a separate [positive-frequency transformer model](coupled-transformers.md). General R/C netlist stamping, arbitrary connectivity, calibrated dB references and the native Metis Bode/PSD view remain open. A future frequency-domain matrix solve can use these loaded ladders and the independent nodal reference as regression fixtures.

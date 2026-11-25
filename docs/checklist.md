@@ -38,7 +38,7 @@ Use the checkboxes for evidence state. The [design evidence](design-evidence.md)
 - [x] At the RC pole recover gain 1/√2 and −45° within 0.1% magnitude and 0.1°. Validate complex values one decade above and below the pole, assessing phase away from zeros. Compare gain and port impedance against independent nodal solutions through the CLI. [RC evidence](rc-frequency-response.md)
 - [x] Recover series RLC resonance and Q within 0.5% using the reactance zero and the two half-power points. [Series-branch qualification](capacitor-bank.md)
 - [x] Recover one-sided open-circuit resistor noise PSD of 4kTR in V²/Hz within 0.1%. Verify nonuniform-temperature RC ladders against independent nodal power sums and read the pole PSD from the original Iris samples. [Thermal-noise evidence](thermal-noise.md)
-- [ ] Compare a coupled inductor with the ideal transformer limit.
+- [x] Compare coupled windings with the ideal transformer limit for gain and reflected impedance. Verify finite magnetizing current, secondary polarity, open and short terminations and real-power balance. [Independent winding equations and sweep measurements](coupled-transformers.md)
 - [x] Compare ESR/ESL PDN impedance against the driver over a fixed log grid and document temperature, port convention, lossless resonance and supported inputs. [606 CLI comparisons and singular cases](capacitor-bank.md)
 
 <a id="v04"></a>

@@ -30,6 +30,7 @@ The release sequence below defines the v1 product scope. Each item has a depende
 
 - priority: feature
 - needs: 0.2
+- Qualified lossless coupled windings and ideal transformers under voltage drive, including load reflection, polarity, open and shorted secondaries, and the finite-magnetizing limit. [Transformer qualification](docs/coupled-transformers.md)
 - Implemented the [series RLC and parallel capacitor-bank model](docs/capacitor-bank.md) with complex port impedance, resonance and Q checks, and differential tests against the Kwavers driver. Driver adoption remains open.
 - Implemented the loaded RC ladder, streaming sweeps and a borrowed Iris Bode view. General AC netlist stamping and native display remain open. [RC qualification](docs/rc-frequency-response.md)
 - Implemented independent series and shunt resistor noise for RC ladders and a typed, borrowed Iris voltage PSD trace. [Thermal-noise qualification](docs/thermal-noise.md)
