@@ -18,7 +18,7 @@ Keep one circuit connectivity model for CLI, editors, KiCad interchange and simu
 
 | Planned capability | Atlas owner or intended integration |
 | --- | --- |
-| Dimensional public quantities, numeric scalar and complex arithmetic | Aequitas is active in both 0.1 crates for typed physical quantities. Eunomia supplies its scalar foundation. Qualify each additional model quantity before use. |
+| Dimensional public quantities, numeric scalar and complex arithmetic | All three workspace crates use Aequitas for typed physical quantities. Eunomia supplies its scalar foundation. Qualify each additional model quantity before use. |
 | Dense and sparse arrays, direct and iterative linear solves | Leto/Leto Ops and Athena. A grounded resistor block is positive definite under the usual passive assumptions. Modified nodal analysis with ideal voltage sources can be indefinite or nonsymmetric; qualify pivoting, scaling and diagnostics on those matrices. |
 | Time integration, spectral analysis, parallel parameter studies | Evaluate Horae for stiff DAEs and event handling, Apollo for spectra, Moirai for work scheduling. Preserve a deterministic serial solve. |
 | Geometry, material coefficients, multiphysics exchange, optional device compute | Gaia, Proteus, Harmonia and Hephaestus. Electra owns electrical laws and boundary conditions. Add a GPU route only with host parity and a measured benefit. |
@@ -40,7 +40,7 @@ File loading records source spans. Declaration collection establishes the model 
 
 ## Atlas-only dependency rule
 
-Electra takes direct dependencies only on Atlas packages. Both crates use Aequitas 0.5.0 with default features disabled. The locked graph contains two Electra packages, four Atlas provider packages (Aequitas, Athena Core, Eunomia and Eunomia Derive), and nine inherited third-party package versions. Typenum provides dimension arithmetic. Eunomia and its macro/build dependencies bring in bytemuck, bytemuck_derive, libm, proc-macro2, quote, two versions of syn and unicode-ident. The source of these dependencies is the Atlas providers. The CLI, solver and tooling add no independent external engine or library.
+Electra takes direct dependencies only on Atlas packages. The workspace uses Aequitas 0.5.0 with default features disabled. The RC solver uses Eunomia’s complex scalar directly. The locked graph contains three Electra packages, four Atlas provider packages (Aequitas, Athena Core, Eunomia and Eunomia Derive), and nine inherited third-party package versions. Typenum provides dimension arithmetic. Eunomia and its macro/build dependencies bring in bytemuck, bytemuck_derive, libm, proc-macro2, quote, two versions of syn and unicode-ident. The source of these dependencies is the Atlas providers. The CLI, solver and tooling add no independent external engine or library.
 
 The dependency audit rejects third-party direct declarations (including dev/build and platform dependencies), unreviewed sources, and increases outside the reviewed inherited package versions. `python3 scripts/check-dependencies.py --strict-transitive` also rejects the current inherited closure. Keep that result open on the release checklist. Work toward reducing it in the owning Atlas providers; check dimension laws, packed scalar behavior and no-default-feature builds before removing a dependency. Adding a local imitation of Aequitas would introduce competing unit definitions.
 

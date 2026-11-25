@@ -35,7 +35,7 @@ Use the checkboxes for evidence state. The [design evidence](design-evidence.md)
 
 - [ ] Specify the Iris visual contract for Bode and PSD data. A 1 kHz cursor reads 1,000 Hz from the headless samples. Reject a current trace bound to a voltage axis; distinguish V²/Hz from V/√Hz and absolute dB references from dimensionless gain.
 
-- [ ] At the RC pole recover gain 1/√2 and −45° within 0.1% magnitude and 0.1°. Validate complex values at one decade above and below the pole, with phase assessed away from zeros.
+- [x] At the RC pole recover gain 1/√2 and −45° within 0.1% magnitude and 0.1°. Validate complex values one decade above and below the pole, assessing phase away from zeros. Compare gain and port impedance against independent nodal solutions through the CLI. [RC evidence](rc-frequency-response.md)
 - [ ] Recover series RLC resonance and Q within 0.5%, compare a coupled inductor with the ideal transformer limit, and recover resistor one-sided open-circuit noise PSD of 4kTR in V²/Hz within 0.1%.
 - [ ] Compare ESR/ESL PDN impedance against the driver over a fixed log grid; document temperature, port convention, treatment of lossless resonance and unsupported model cards.
 

@@ -42,6 +42,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "electra-ac"
+version = "0.1.0"
+dependencies = [
+ "aequitas",
+ "eunomia",
+]
+
+[[package]]
 name = "electra-circuit"
 version = "0.1.0"
 dependencies = [

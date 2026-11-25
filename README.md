@@ -1,6 +1,6 @@
 # Electra
 
-Electra is the Atlas project for electronic circuit simulation and PCB design. The headless solver supports linear DC resistor networks with independent sources and all four linear controlled-source families. The 0.2 roadmap increments add DC transfer sweeps, floating voltage sources, zero-volt current probes, typed hierarchical subcircuits and full modified nodal analysis for feedback circuits to the 0.1.0 workspace. The v1 target is a native schematic-to-simulation-to-fabrication workflow with KiCad file interchange.
+Electra is the Atlas project for electronic circuit simulation and PCB design. The headless solver supports linear DC resistor networks with independent sources and all four linear controlled-source families. The 0.2 roadmap increments add DC transfer sweeps, floating voltage sources, zero-volt current probes, typed hierarchical subcircuits and full modified nodal analysis for feedback circuits to the 0.1.0 workspace. The first 0.3 increment computes loaded RC ladder frequency response and output impedance. The v1 target is a native schematic-to-simulation-to-fabrication workflow with KiCad file interchange.
 
 ```sh
 cargo run --locked --offline --bin electra -- op examples/divider.cir
@@ -34,14 +34,25 @@ Select `--solver mna` for an operating point or transfer sweep with Athena Core.
 
 For a direct solution, the opt-in Leto adapter reuses one pivoted factor across a DC sweep. It accepts up to 256 non-reference unknowns. [Usage, reference accuracy and memory cost](docs/pivoted-direct.md)
 
+## RC frequency response
+
+For a one-stage low-pass filter with a 1 kHz pole, this command prints three CSV rows with complex voltage gain, phase and output impedance.
+
+```sh
+cargo run --locked --offline -p electra-ac --bin electra-rc -- 100 10000 3 1000 1.5915494309189535e-7 0
+```
+
+At 1 kHz the gain is 0.5 − j0.5, the phase is −45°, and the output impedance is 500 − j500 Ω. Multiple stages account for the load each stage places on the preceding stage. [Model, units and numerical validation](docs/rc-frequency-response.md)
+
 ## Packages and ownership
 
 | Package | Responsibility |
 | --- | --- |
 | `electra-network` | Generic two-terminal stamps with fixed-end elimination, ordered relaxation sweeps, anchored linear-network solving and conservation diagnostics. The stamp and sweep monomorphize for the caller’s scalar and storage iterator. |
 | `electra-circuit` | Electrical netlist parsing, SI conventions, independent source constraints, branch currents, DC analysis and the `electra` binary. |
+| `electra-ac` | Borrowed RC ladder models, streaming frequency sweeps and the `electra-rc` binary. |
 
-Both crates use Aequitas for dimensional arithmetic. For example, a node voltage multiplied by a branch current produces a value of type `Power`, and a voltage-valued current tolerance fails compilation. The current toolchain floor is Rust 1.95. With dependencies cached, both packages build offline. The locked graph has no third-party direct dependencies and nine inherited third-party package versions through Aequitas/Eunomia. See the [architecture and dependency policy](docs/architecture.md).
+The workspace crates use Aequitas for dimensional arithmetic. For example, a node voltage multiplied by a branch current produces a value of type `Power`, and a voltage-valued current tolerance fails compilation. The current toolchain floor is Rust 1.95. With dependencies cached, the workspace builds offline. The locked graph has no third-party direct dependencies and nine inherited third-party package versions through Aequitas/Eunomia. See the [architecture and dependency policy](docs/architecture.md).
 
 The visual workbench is planned. Metis owns UI and interaction; Iris owns visualization. Electra supplies typed electrical data and selection identities to both. The [design evidence](docs/design-evidence.md) connects competitor features and current research to release fixtures.
 
