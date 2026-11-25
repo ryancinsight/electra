@@ -33,7 +33,7 @@ Use the checkboxes for evidence state. The [design evidence](design-evidence.md)
 <a id="v03"></a>
 ## 0.3 · AC, impedance and noise
 
-- [ ] Specify the Iris visual contract for Bode and PSD data. A 1 kHz cursor reads 1,000 Hz from the headless samples. Reject a current trace bound to a voltage axis; distinguish V²/Hz from V/√Hz and absolute dB references from dimensionless gain.
+- [x] Specify the Iris visual contract for Bode and PSD data. A 1 kHz cursor reads 1,000 Hz from the headless samples. Reject a current trace bound to a voltage axis; distinguish V²/Hz from V/√Hz and absolute dB references from dimensionless gain. [Typed conversion and cursor qualification](rc-frequency-response.md#spectral-readback-contract)
 
 - [x] At the RC pole recover gain 1/√2 and −45° within 0.1% magnitude and 0.1°. Validate complex values one decade above and below the pole, assessing phase away from zeros. Compare gain and port impedance against independent nodal solutions through the CLI. [RC evidence](rc-frequency-response.md)
 - [x] Recover series RLC resonance and Q within 0.5% using the reactance zero and the two half-power points. [Series-branch qualification](capacitor-bank.md)
