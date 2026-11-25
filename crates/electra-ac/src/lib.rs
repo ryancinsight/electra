@@ -1,4 +1,4 @@
-//! Headless small-signal response of loaded RC ladders.
+//! Headless small-signal response of loaded RC ladders and capacitor banks.
 //!
 //! ```
 //! use electra_ac::{Capacitance, ElectricConductance, ElectricalImpedance, Frequency, RcLadder, Stage};
@@ -12,12 +12,13 @@
 //! ```
 mod error;
 mod ladder;
+pub mod pdn;
 mod response;
 mod sweep;
 
 pub use aequitas::systems::si::quantities::{
     Angle, Capacitance, Dimensionless, ElectricConductance, ElectricPotential, ElectricalImpedance,
-    Frequency,
+    Frequency, Inductance,
 };
 pub use error::AcError;
 pub use eunomia::Complex64;
