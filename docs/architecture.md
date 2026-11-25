@@ -44,6 +44,8 @@ Electra takes direct dependencies only on Atlas packages. Both crates use Aequit
 
 The dependency audit rejects third-party direct declarations (including dev/build and platform dependencies), unreviewed sources, and increases outside the reviewed inherited package versions. `python3 scripts/check-dependencies.py --strict-transitive` also rejects the current inherited closure. Keep that result open on the release checklist. Work toward reducing it in the owning Atlas providers; check dimension laws, packed scalar behavior and no-default-feature builds before removing a dependency. Adding a local imitation of Aequitas would introduce competing unit definitions.
 
+The optional Leto direct adapter has its own workspace and lockfile. Electra supplies the normalized operator and physics checks. Leto owns pivoting and triangular solves. Run `python3 scripts/check-dependencies.py --leto-direct` to audit the adapter. [Qualification and resource limit](pivoted-direct.md)
+
 KiCad and SPICE are interoperability and validation targets. Archive reference inputs, versioned external outputs where redistribution permits, and analytical derivations. A user must be able to install Electra, simulate a project, edit a board and generate its fabrication files using Atlas code. Reference executables can be used independently to generate comparison data. They are optional to the developer and absent from the product runtime.
 
 ## Migration order

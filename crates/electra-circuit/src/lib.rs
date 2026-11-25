@@ -10,6 +10,7 @@ use aequitas::systems::si::dimensions;
 pub use aequitas::systems::si::quantities::{
     Dimensionless, ElectricConductance, ElectricCurrent, ElectricPotential, ElectricalImpedance,
 };
+pub use analysis::mna::direct;
 pub use analysis::mna::{MnaError, MnaOptions, MnaPoint, MnaSample, MnaSweep};
 pub use analysis::{DcResult, DcSample, DcSweep, LinearSweep, SourceValue, SweepError, SweepRange};
 use electra_network::Branch;

@@ -1,11 +1,13 @@
 //! Profile preparation and a streamed sweep of repeated cells.
-//! Usage: mna_profile ELEMENTS reduced|mna|controlled
+//! Usage: mna_profile ELEMENTS reduced|mna|controlled|deck
 use electra_circuit::{MnaOptions, SourceValue, parse};
 use std::{env, fmt::Write, time::Instant};
 
 fn main() {
     let elements: usize = env::args().nth(1).expect("element count").parse().unwrap();
-    let mode = env::args().nth(2).expect("reduced, mna or controlled");
+    let mode = env::args()
+        .nth(2)
+        .expect("reduced, mna, controlled or deck");
     let controlled = mode == "controlled";
     let per_cell = if controlled { 10 } else { 4 };
     let cells = elements / per_cell;
@@ -43,6 +45,10 @@ Rh h 0 1k
             .unwrap();
         }
         deck.push_str(".dc V0 0 10 0.1\n");
+    }
+    if mode == "deck" {
+        print!("{deck}");
+        return;
     }
     let circuit = parse(&deck).unwrap();
     let start = Instant::now();

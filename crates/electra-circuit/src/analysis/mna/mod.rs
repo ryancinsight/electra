@@ -1,11 +1,12 @@
-//! Scaled, matrix-free modified nodal analysis.
+//! Scaled modified nodal analysis with matrix-free iterative and explicit direct solves.
+pub mod direct;
 mod error;
 mod linear;
 mod result;
 mod sweep;
 mod system;
 use crate::analysis::excitation::Excitation;
-use crate::{Circuit, DcResult, Dimensionless, ElectricCurrent, ElectricPotential, SolveOptions};
+use crate::{Circuit, Dimensionless, ElectricCurrent, ElectricPotential, SolveOptions};
 use athena_core::LinearOperator;
 pub use error::MnaError;
 use linear::Krylov;
@@ -70,7 +71,7 @@ struct Session<'a> {
 impl<'a> Session<'a> {
     fn new(c: &'a Circuit, limits: MnaOptions, swept: Option<usize>) -> Result<Self, MnaError> {
         limits.validate()?;
-        let system = System::new(c)?;
+        let system = System::new(c, usize::MAX)?;
         let mut linear = Krylov::new(system.dimension())?;
         let drive = system.rhs(c, swept, &mut linear.rhs)?;
         Ok(Self {
@@ -79,11 +80,7 @@ impl<'a> Session<'a> {
             linear,
             drive,
             balance: vec![Balance::default(); c.names.len()],
-            point: MnaPoint {
-                probes: DcResult::new(c),
-                iterations: 0,
-                residual_volts: ElectricPotential::default(),
-            },
+            point: MnaPoint::new(c),
             limits,
         })
     }
@@ -135,9 +132,6 @@ impl<'a> Session<'a> {
                 reason: report.termination,
                 iterations: self.point.iterations,
             });
-        }
-        if !self.linear.x.iter().all(|x| x.is_finite()) {
-            return Err(MnaError::Arithmetic);
         }
         self.point.project(
             self.circuit,

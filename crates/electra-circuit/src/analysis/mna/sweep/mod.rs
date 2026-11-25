@@ -1,6 +1,8 @@
+mod cursor;
 mod predict;
 use super::{MnaError, MnaOptions, MnaPoint, Session};
 use crate::{Circuit, SourceValue, SweepError, SweepRange, analysis::sweep::SweepPlan};
+pub(super) use cursor::Cursor;
 use predict::Predictor;
 
 /// One borrowed sample of a full MNA transfer sweep.
@@ -13,9 +15,9 @@ pub struct MnaSample<'p, 'c> {
 /// Streaming MNA sweep sharing operator, Krylov workspace and result buffers across points.
 pub struct MnaSweep<'a> {
     session: Session<'a>,
-    plan: SweepPlan,
+    cursor: Cursor,
+    name: &'a str,
     predictor: Predictor,
-    finished: bool,
 }
 impl Circuit {
     /// Prepare the deck's DC sweep using the full MNA operator.
@@ -47,28 +49,23 @@ impl<'a> MnaSweep<'a> {
         Ok(Self {
             predictor: Predictor::new(session.linear.x.len()),
             session,
-            plan,
-            finished: false,
+            cursor: Cursor::new(plan),
+            name: &c.parts[plan.source].name,
         })
     }
     /// Original source name.
     pub fn source_name(&self) -> &'a str {
-        &self.session.circuit.parts[self.plan.source].name
+        self.name
     }
     /// Advance one point. Exhaustion and errors terminate the stream.
     pub fn next_point(&mut self) -> Result<Option<MnaSample<'_, 'a>>, MnaError> {
-        if self.finished {
-            return Ok(None);
-        }
-        self.finished = true;
-        let Some(excitation) = self.plan.next_value().map_err(MnaError::Sweep)? else {
+        let Some(excitation) = self.cursor.advance(|source, value| {
+            self.predictor.seed(value, &mut self.session.linear.x);
+            self.session.run(Some((source, value)))
+        })?
+        else {
             return Ok(None);
         };
-        self.predictor.seed(excitation, &mut self.session.linear.x);
-        self.session
-            .run(Some((self.plan.source, excitation)))
-            .map_err(|e| MnaError::Point(excitation, Box::new(e)))?;
-        self.finished = false;
         Ok(Some(MnaSample {
             excitation,
             result: &self.session.point,

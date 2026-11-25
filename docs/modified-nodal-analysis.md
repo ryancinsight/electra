@@ -85,3 +85,5 @@ target/release/examples/mna_profile 10000 reduced
 ## Provider scope
 
 `athena-core 0.4.0` adds one Atlas package and reuses the locked `eunomia 0.12.1`. The other providers are `aequitas 0.5.0` and `eunomia-derive 0.12.1`. The nine inherited third-party versions remain `bytemuck 1.25.2`, `bytemuck_derive 1.12.1`, `libm 0.2.16`, `proc-macro2 1.0.107`, `quote 1.0.47`, `syn 2.0.119`, `syn 3.0.10`, `typenum 1.20.1` and `unicode-ident 1.0.27`. A separate dependency-resolution trial with `athena-leto 0.5.0` added 95 locked packages over the existing lockfile. Electra links only the core recurrence for this milestone. [Dependency policy](architecture.md#atlas-only-dependency-rule)
+
+The optional Leto adapter shares the normalized stamps, drive and physical checks with the iterative path. [Pivoted LU qualification](pivoted-direct.md)

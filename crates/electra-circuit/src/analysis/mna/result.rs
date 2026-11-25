@@ -14,7 +14,7 @@ pub struct MnaPoint<'a> {
     pub probes: DcResult<'a>,
     /// Largest absolute difference between an ideal source's imposed and measured voltage.
     pub residual_volts: ElectricPotential,
-    /// Arnoldi iterations for this point.
+    /// Arnoldi iterations for this point. Direct factorizations report zero.
     pub iterations: usize,
 }
 
@@ -23,7 +23,15 @@ pub(super) struct Balance {
     net: CurrentSum,
     scale: ElectricCurrent,
 }
-impl MnaPoint<'_> {
+impl<'a> MnaPoint<'a> {
+    pub(super) fn new(circuit: &'a Circuit) -> Self {
+        Self {
+            probes: DcResult::new(circuit),
+            iterations: 0,
+            residual_volts: ElectricPotential::default(),
+        }
+    }
+
     pub(super) fn project(
         &mut self,
         c: &Circuit,
@@ -33,6 +41,9 @@ impl MnaPoint<'_> {
         limits: MnaOptions,
         balance: &mut [Balance],
     ) -> Result<(), MnaError> {
+        if !x.iter().all(|v| v.is_finite()) {
+            return Err(MnaError::Arithmetic);
+        }
         balance.fill(Balance::default());
         for ((_, v), &value) in self.probes.volts.iter_mut().zip(x) {
             *v = VOLT * value;

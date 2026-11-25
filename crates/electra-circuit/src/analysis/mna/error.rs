@@ -15,6 +15,15 @@ pub enum MnaError {
     Arithmetic,
     /// Storage allocation or provider contract failure.
     Backend(&'static str),
+    /// A direct provider declined the order before allocating factorization storage.
+    DirectOrder {
+        /// Number of non-reference voltage and branch-current unknowns.
+        order: usize,
+        /// Maximum order accepted by the selected provider.
+        limit: usize,
+    },
+    /// Numerical factorization or triangular solve failed in the direct provider.
+    Direct(String),
     /// Athena terminated before numerical convergence.
     Krylov {
         /// Provider termination.
@@ -59,6 +68,11 @@ impl fmt::Display for MnaError {
                 f.write_str("controlled-source system is singular or numerically rank deficient")
             }
             Self::Arithmetic => f.write_str("non-finite or unrepresentable MNA result"),
+            Self::DirectOrder { order, limit } => write!(
+                f,
+                "direct solve order {order} exceeds provider limit {limit}"
+            ),
+            Self::Direct(e) => f.write_str(e),
             Self::Backend(e) => f.write_str(e),
             Self::Krylov { reason, iterations } => {
                 write!(f, "Athena GMRES {reason:?} after {iterations} iterations")

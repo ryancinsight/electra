@@ -32,6 +32,8 @@ The CLI reports node voltages, signed device currents, iteration count and maxim
 
 Select `--solver mna` for an operating point or transfer sweep with Athena Core. It solves node voltages and ideal-source currents together and checks current and voltage residuals separately. Use `--atol-volts` and `--max-iterations` for its source-voltage tolerance and iteration budget. The Rust entry points are `operating_point_mna`, `dc_sweep_mna` and `sweep_source_mna`. [Equations, validation and measured cost](docs/modified-nodal-analysis.md)
 
+For a direct solution, the opt-in Leto adapter reuses one pivoted factor across a DC sweep. It accepts up to 256 non-reference unknowns. [Usage, reference accuracy and memory cost](docs/pivoted-direct.md)
+
 ## Packages and ownership
 
 | Package | Responsibility |

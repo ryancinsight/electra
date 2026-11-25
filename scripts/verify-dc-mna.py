@@ -186,17 +186,17 @@ if __name__ == "__main__":
     parser.add_argument("binary", nargs="?", type=Path, default=Path("target/release/electra"))
     parser.add_argument("--hierarchical", action="store_true",
                         help="represent each device as a nested instance with a typed override")
-    parser.add_argument("--solver", choices=["reduced", "mna"], default="reduced")
+    parser.add_argument("--solver", choices=["reduced", "mna", "direct", "dispatch", "sparse-first"], default="reduced")
     parser.add_argument("--sweep", action="store_true", help="verify five points per deck against separate exact solves")
     parser.add_argument("--controlled", action="store_true", help="test all four dependent-source families in coupled feedback networks")
     args = parser.parse_args()
-    if args.controlled and args.solver != "mna":
-        parser.error("--controlled requires --solver mna")
+    if args.controlled and args.solver == "reduced":
+        parser.error("controlled devices require an MNA solver")
     solver_options = []
-    if args.solver == "mna":
-        solver_options += ["--solver", "mna", "--atol-volts", "1e-12"]
+    if args.solver != "reduced":
+        solver_options += ["--solver", args.solver, "--atol-volts", "1e-12"]
     layout = "hierarchical" if args.hierarchical else "flat"
-    nominal_gate = {"V": 1e-10, "I": 1e-12} if args.solver == "mna" else {"V": 2e-8, "I": 2e-9}
+    nominal_gate = {"V": 1e-10, "I": 1e-12} if args.solver != "reduced" else {"V": 2e-8, "I": 2e-9}
     verify(args.binary.resolve(), f"{args.solver} {layout} default", solver_options, nominal_gate, args.hierarchical, args.sweep, args.controlled)
     verify(args.binary.resolve(), f"{args.solver} {layout} qualification", [*solver_options, "--atol-amps", "1e-14", "--rtol", "1e-13"],
            {"V": 1e-10, "I": 1e-12}, args.hierarchical, args.sweep, args.controlled)

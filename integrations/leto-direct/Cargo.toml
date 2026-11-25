@@ -1,0 +1,16 @@
+[workspace]
+
+[package]
+name = "electra-leto-direct"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.95"
+license = "MIT"
+repository = "https://github.com/ryancinsight/electra"
+publish = false
+description = "Bounded Leto direct factorization for Electra DC qualification"
+
+[dependencies]
+electra-circuit = { path = "../../crates/electra-circuit" }
+leto = { version = "=0.52.0", default-features = false }
+leto-ops = { version = "=0.52.0", default-features = false }

@@ -50,12 +50,39 @@ def check(metadata, strict):
           f"{len(inherited)} inherited third-party package versions; 0 external direct dependencies")
 
 
+def check_direct_adapter(metadata, strict):
+    member, = metadata["workspace_members"]
+    packages = {p["id"]: p for p in metadata["packages"]}
+    adapter = packages[member]
+    providers = {"leto", "leto-ops"}
+    if adapter["name"] != "electra-leto-direct" or {d["name"] for d in adapter["dependencies"]} != providers | {"electra-circuit"}:
+        raise SystemExit("Unexpected direct provider in the Leto qualification workspace")
+    for package in packages.values():
+        name = package["name"]
+        if name in providers and package["repository"].removesuffix(".git") != "https://github.com/ryancinsight/leto":
+            raise SystemExit(f"Unexpected Leto provider repository for {name}")
+        if package["id"] == member:
+            continue
+        if name in WORKSPACE:
+            if Path(package["manifest_path"]).resolve() != ROOT / "crates" / name / "Cargo.toml":
+                raise SystemExit(f"Unexpected local circuit dependency {name}")
+        elif package["source"] != REGISTRY:
+            raise SystemExit(f"Unexpected dependency source for {name}")
+    inherited = [p for p in packages.values() if not (p["repository"] or "").startswith("https://github.com/ryancinsight/")]
+    if strict and inherited:
+        raise SystemExit(f"{len(inherited)} non-Atlas transitive package versions in the Leto qualification workspace")
+    print(f"Leto qualification workspace: {len(packages)} locked packages, "
+          f"{len(inherited)} inherited third-party versions, 0 external direct dependencies")
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--strict-transitive", action="store_true",
                         help="require zero third-party packages anywhere in the graph")
+    parser.add_argument("--leto-direct", action="store_true", help="audit the opt-in Leto qualification workspace")
     args = parser.parse_args()
+    workspace = ROOT / "integrations" / "leto-direct" if args.leto_direct else ROOT
     metadata = json.loads(subprocess.check_output([
         "cargo", "metadata", "--format-version", "1", "--locked", "--offline", "--all-features"
-    ], cwd=ROOT, text=True))
-    check(metadata, args.strict_transitive)
+    ], cwd=workspace, text=True))
+    (check_direct_adapter if args.leto_direct else check)(metadata, args.strict_transitive)

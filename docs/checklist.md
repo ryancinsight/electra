@@ -28,7 +28,7 @@ Use the checkboxes for evidence state. The [design evidence](design-evidence.md)
 - [x] Parse case-insensitive T/G/MEG/K/M/U/N/P/F scale factors for part and sweep cards. Reject bad units, source types, ranges, trailing fields and duplicate controls with a one-based deck line.
 - [x] Test hierarchical name collisions, lexical parameter scope, cross-file diagnostics and qualified sweeps. Verify 4,096-level traversal, empty-subtree pruning and rejection of unrepresentable expanded device counts. Compare all probes on 64 hierarchical decks to exact rational MNA at the qualification tolerances. [Evidence](hierarchical-netlists.md)
 - [x] Demonstrate scaled indefinite DC analysis with Athena Core GMRES. Compare every bias and sweep probe with exact rational MNA. Record numerical breakdown and singularity diagnostics, peak memory, allocations, runtime and the locked provider closure at 100, 1,000 and 10,000 physical elements. [Measurements](modified-nodal-analysis.md)
-- [ ] Qualify the Leto pivoted direct path on the same indefinite fixtures. Measure pivot failures, dense fallback behavior and memory before selecting a fallback.
+- [x] Qualify Leto direct LU on the indefinite DC fixtures. All 46,848 probes passed at each tolerance. Record eight false singularities in the published sparse path, replay the correction, and measure dense fallback memory. Use an explicitly selected factor through 256 unknowns. [Pivot and memory evidence](pivoted-direct.md)
 
 <a id="v03"></a>
 ## 0.3 · AC, impedance and noise

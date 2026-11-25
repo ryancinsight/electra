@@ -1,4 +1,4 @@
-//! One stamp traversal, specialized for a matrix-vector product or a sparse rank check.
+//! One stamp traversal, specialized for matrix-vector products, rank checks and direct factors.
 use super::{Host, Signal, Stamp, System};
 use athena_core::LinearOperator;
 

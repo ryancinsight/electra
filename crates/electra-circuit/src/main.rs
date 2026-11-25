@@ -8,18 +8,8 @@ use std::{
     process::ExitCode,
 };
 
-fn write_probes(out: &mut impl Write, result: &DcResult<'_>) -> io::Result<()> {
-    for &(name, v) in &result.volts {
-        writeln!(out, "V({name}) = {:.12e} V", v.into_base())?;
-    }
-    for &(name, i) in &result.amperes {
-        writeln!(out, "I({name}) = {:.12e} A", i.into_base())?;
-    }
-    Ok(())
-}
-
 fn write_point(out: &mut impl Write, result: &DcResult<'_>) -> io::Result<()> {
-    write_probes(out, result)?;
+    result.write_probes(out)?;
     writeln!(
         out,
         "max KCL residual = {:.6e} A ({} sweeps)",
@@ -29,7 +19,7 @@ fn write_point(out: &mut impl Write, result: &DcResult<'_>) -> io::Result<()> {
 }
 
 fn write_mna(out: &mut impl Write, result: &electra_circuit::MnaPoint<'_>) -> io::Result<()> {
-    write_probes(out, &result.probes)?;
+    result.probes.write_probes(out)?;
     writeln!(
         out,
         "max KCL residual = {:.6e} A; max source voltage residual = {:.6e} V ({} GMRES iterations)",

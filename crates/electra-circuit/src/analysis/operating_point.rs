@@ -1,5 +1,6 @@
 use super::dc::Session;
 use crate::{Circuit, ElectricCurrent, ElectricPotential, SolveError, SolveOptions};
+use std::io::{self, Write};
 
 /// Voltages and passive-sign branch currents in input order.
 ///
@@ -56,5 +57,18 @@ impl<'a> DcResult<'a> {
             sweeps: 0,
             residual_amperes: ElectricCurrent::default(),
         }
+    }
+}
+
+impl DcResult<'_> {
+    /// Write all named potentials and signed branch currents in SI units and deck order.
+    pub fn write_probes(&self, out: &mut impl Write) -> io::Result<()> {
+        for &(name, v) in &self.volts {
+            writeln!(out, "V({name}) = {:.12e} V", v.into_base())?;
+        }
+        for &(name, i) in &self.amperes {
+            writeln!(out, "I({name}) = {:.12e} A", i.into_base())?;
+        }
+        Ok(())
     }
 }

@@ -1,4 +1,5 @@
 //! Normalize KCL rows and branch-current unknowns at the numerical boundary.
+mod coefficients;
 mod control;
 mod operator;
 mod rank;
@@ -60,7 +61,15 @@ pub(super) struct System {
 }
 
 impl System {
-    pub fn new(c: &Circuit) -> Result<Self, MnaError> {
+    pub fn new(c: &Circuit, max_order: usize) -> Result<Self, MnaError> {
+        let count = c.parts.iter().filter(|p| c.voltage_output(p)).count();
+        let order = c.names.len() - 1 + count;
+        if order > max_order {
+            return Err(MnaError::DirectOrder {
+                order,
+                limit: max_order,
+            });
+        }
         if !c.requires_mna()
             && let Some(n) = constraints::floating_node(c)
         {
@@ -76,7 +85,6 @@ impl System {
             }
         }
         // Choose all branch units from the passive network before changing any row units.
-        let count = c.parts.iter().filter(|p| c.voltage_output(p)).count();
         let mut source_units = Vec::with_capacity(count);
         for (index, p) in c.parts.iter().enumerate() {
             if c.voltage_output(p) {
