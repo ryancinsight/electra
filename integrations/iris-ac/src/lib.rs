@@ -1,6 +1,8 @@
-//! Borrow Electra Bode samples for an Iris view or a native Metis cursor.
+//! Borrow Electra frequency-response and voltage-noise samples for Iris.
+mod noise;
 use electra_ac::{Angle, Dimensionless, Frequency};
 use iris::{IrisResult, view::SeriesView};
+pub use noise::voltage_noise_spectrum;
 
 /// Paired typed magnitude and phase traces over the same frequency slice.
 pub struct BodeView<'a> {

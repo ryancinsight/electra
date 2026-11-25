@@ -1,6 +1,6 @@
 # Electra
 
-Electra is the Atlas project for electronic circuit simulation and PCB design. The headless solver supports linear DC resistor networks with independent sources and all four linear controlled-source families. The 0.2 roadmap increments add DC transfer sweeps, floating voltage sources, zero-volt current probes, typed hierarchical subcircuits and full modified nodal analysis for feedback circuits to the 0.1.0 workspace. The 0.3 work includes loaded RC ladder response and complex input impedance for capacitor banks with ESR and ESL. The v1 target is a native schematic-to-simulation-to-fabrication workflow with KiCad file interchange.
+Electra is the Atlas project for electronic circuit simulation and PCB design. The headless solver supports linear DC resistor networks with independent sources and all four linear controlled-source families. The 0.2 roadmap increments add DC transfer sweeps, floating voltage sources, zero-volt current probes, typed hierarchical subcircuits and full modified nodal analysis for feedback circuits to the 0.1.0 workspace. The 0.3 work includes loaded RC ladder response, resistor thermal noise and complex input impedance for capacitor banks with ESR and ESL. The v1 target is a native schematic-to-simulation-to-fabrication workflow with KiCad file interchange.
 
 ```sh
 cargo run --locked --offline --bin electra -- op examples/divider.cir
@@ -44,6 +44,10 @@ cargo run --locked --offline -p electra-ac --bin electra-rc -- 100 10000 3 1000 
 
 At 1 kHz the gain is 0.5 − j0.5, the phase is −45°, and the output impedance is 500 − j500 Ω. Multiple stages account for the load each stage places on the preceding stage. [Model, units and numerical validation](docs/rc-frequency-response.md)
 
+### Thermal noise
+
+Add `--noise` and supply the series and shunt resistor temperatures in kelvin for each stage. For a 1 kΩ resistor at 300 K with a 1 kHz RC pole, the output density at the pole is 8.283894 × 10⁻¹⁸ V²/Hz. [CLI example, circuit law and verification](docs/thermal-noise.md)
+
 ## Capacitor-bank impedance
 
 Sweep the input impedance of a 10 µF bulk capacitor in parallel with a 100 nF local capacitor. Each branch takes capacitance in farads, series resistance in ohms, and series inductance in henries.
@@ -60,7 +64,7 @@ The CSV reports the complex impedance and magnitude. The typed API also accepts 
 | --- | --- |
 | `electra-network` | Generic two-terminal stamps with fixed-end elimination, ordered relaxation sweeps, anchored linear-network solving and conservation diagnostics. The stamp and sweep monomorphize for the caller’s scalar and storage iterator. |
 | `electra-circuit` | Electrical netlist parsing, SI conventions, independent source constraints, branch currents, DC analysis and the `electra` binary. |
-| `electra-ac` | Borrowed RC ladder and capacitor-bank models, streaming frequency sweeps, and the `electra-rc` and `electra-pdn` binaries. |
+| `electra-ac` | Borrowed RC ladder, thermal-noise and capacitor-bank models, streaming frequency sweeps, and the `electra-rc` and `electra-pdn` binaries. |
 
 The workspace crates use Aequitas for dimensional arithmetic. For example, a node voltage multiplied by a branch current produces a value of type `Power`, and a voltage-valued current tolerance fails compilation. The current toolchain floor is Rust 1.95. With dependencies cached, the workspace builds offline. The locked graph has no third-party direct dependencies and nine inherited third-party package versions through Aequitas/Eunomia. See the [architecture and dependency policy](docs/architecture.md).
 

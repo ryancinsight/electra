@@ -1,6 +1,6 @@
 [package]
 name = "electra-ac"
-description = "Typed, streaming frequency response of RC ladders and capacitor banks"
+description = "Typed, streaming frequency response and thermal noise for passive circuits"
 default-run = "electra-rc"
 version.workspace = true
 edition.workspace = true
