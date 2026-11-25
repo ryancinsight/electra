@@ -46,6 +46,8 @@ Measurements used Rust 1.95.0 in release mode on macOS arm64. Each four-device c
 
 The adapter's 256-unknown ceiling bounds the two dense square buffers at 1 MiB combined. Pivots, compiled stamps, physical rank checks and probe buffers add circuit-dependent storage. Its regression tests exercise orders 256 and 257. At 1,000 elements the matrix-free Athena fixture previously used 499,192 B and took 0.939 ms. These repeated cells favor Athena's affine sweep prediction. The runtime and allocation evidence supports explicit bounded direct solves and keeping larger problems on the existing solvers. [Athena measurements](modified-nodal-analysis.md)
 
+A second fixture isolates a successful sparse solve. It has one grounded 1 Ω resistor per node, a current source from `p0` to ground, and the same 101-point sweep. At 2,048 unknowns, median setup fell from 2,043 µs on published Leto to 110 µs with the reachable-row pivot search. Total sweep time fell from 4,270 µs to 2,309 µs in nine alternating runs. Both versions peaked at 393,328 B. The sparse triangular solve allocated two vectors per excitation, or 202 allocations for the sweep. This case exercises a different path from the dense handoffs in the table. Revisit sparse solve workspace reuse before adding it to the Electra CLI.
+
 The core workspace locks 15 packages, including nine inherited third-party versions. The isolated qualification workspace locks 108, including 83 inherited third-party versions under the Atlas providers. All direct declarations refer to Atlas repositories. Keeping Leto in a separately locked integration makes its cost explicit.
 
 ## Replay
@@ -70,4 +72,11 @@ for layout in '' --hierarchical; do
     done
   done
 done
+```
+
+To replay the pivot-free sparse timing, generate a diagonal network and run the same command with the published and corrected qualification binaries.
+
+```sh
+python3 -c 'print("Iload p0 0 1", *(f"R{i} p{i} 0 1" for i in range(2048)), ".dc Iload 0 10 0.1", sep="\n")' > /tmp/electra-diagonal.cir
+target/release/qualify profile /tmp/electra-diagonal.cir --solver dispatch
 ```
