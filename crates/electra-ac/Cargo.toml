@@ -1,6 +1,7 @@
 [package]
 name = "electra-ac"
-description = "Typed, streaming frequency response of passive RC ladders"
+description = "Typed, streaming frequency response of RC ladders and capacitor banks"
+default-run = "electra-rc"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
