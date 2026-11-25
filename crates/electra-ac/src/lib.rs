@@ -1,4 +1,4 @@
-//! Headless small-signal response of loaded RC ladders and capacitor banks, including resistor thermal noise.
+//! Headless AC analysis of RC ladders, thermal noise, capacitor banks and coupled windings.
 //!
 //! ```
 //! use electra_ac::{Capacitance, ElectricConductance, ElectricalImpedance, Frequency, RcLadder, Stage};
@@ -12,7 +12,9 @@
 //! ```
 mod error;
 mod ladder;
+pub mod magnetics;
 pub mod pdn;
+mod port;
 mod response;
 mod sweep;
 
@@ -23,5 +25,6 @@ pub use aequitas::systems::si::quantities::{
 pub use error::AcError;
 pub use eunomia::Complex64;
 pub use ladder::{RcLadder, Stage, noise};
+pub use port::PortImpedance;
 pub use response::AcPoint;
 pub use sweep::LogSweep;

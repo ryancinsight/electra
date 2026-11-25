@@ -25,6 +25,15 @@ def solve_ladder(stages, frequency):
         matrix[j + n][j] += b
     matrix[0][-2] = 1 / D(stages[0][0])
     matrix[n - 1][-1] = 1
+    eliminate(matrix)
+    # One tuple of (real, imaginary) node voltages per excitation.
+    return tuple([(matrix[i][col], matrix[n + i][col]) for i in range(n)]
+                 for col in (-2, -1))
+
+
+def eliminate(matrix):
+    """Pivot the square coefficient block and solve all appended right-hand sides in place."""
+    size = len(matrix)
     for j in range(size):
         k = max(range(j, size), key=lambda i: abs(matrix[i][j]))
         matrix[j], matrix[k] = matrix[k], matrix[j]
@@ -34,6 +43,3 @@ def solve_ladder(stages, frequency):
             if i != j and row[j]:
                 factor = row[j]
                 matrix[i] = [x - factor * y for x, y in zip(row, matrix[j])]
-    # One tuple of (real, imaginary) node voltages per excitation.
-    return tuple([(matrix[i][col], matrix[n + i][col]) for i in range(n)]
-                 for col in (-2, -1))
