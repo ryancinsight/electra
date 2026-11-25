@@ -19,8 +19,8 @@ mod response;
 mod sweep;
 
 pub use aequitas::systems::si::quantities::{
-    Angle, Capacitance, Dimensionless, ElectricConductance, ElectricPotential, ElectricalImpedance,
-    Frequency, Inductance, ThermodynamicTemperature,
+    Angle, Capacitance, Dimensionless, ElectricConductance, ElectricCurrent, ElectricPotential,
+    ElectricalImpedance, Frequency, Inductance, ThermodynamicTemperature,
 };
 pub use error::AcError;
 pub use eunomia::Complex64;

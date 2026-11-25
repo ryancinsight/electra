@@ -1,8 +1,11 @@
 //! Borrow Electra frequency-response and voltage-noise samples for Iris.
 mod noise;
+pub mod readback;
+mod voltage;
 use electra_ac::{Angle, Dimensionless, Frequency};
 use iris::{IrisResult, view::SeriesView};
 pub use noise::voltage_noise_spectrum;
+pub use voltage::rms_voltage_spectrum;
 
 /// Paired typed magnitude and phase traces over the same frequency slice.
 pub struct BodeView<'a> {
@@ -39,8 +42,12 @@ impl<'a> BodeView<'a> {
     }
     /// Read the original solver coordinate and both ordinates at a selected sample.
     pub fn sample(&self, index: usize) -> Option<(Frequency, Dimensionless, Angle)> {
-        let (frequency, gain) = self.magnitude.iter().nth(index)?;
-        Some((*frequency, *gain, self.phase.samples()[index]))
+        let frequency = *self.magnitude.coordinates().get(index)?;
+        Some((
+            frequency,
+            self.magnitude.samples()[index],
+            self.phase.samples()[index],
+        ))
     }
 }
 

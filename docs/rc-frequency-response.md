@@ -52,4 +52,18 @@ cargo run --release --locked --manifest-path crates/electra-ac/Cargo.toml --exam
 
 RC ladders now propagate independent resistor sources and expose a borrowed Iris voltage PSD trace. [Thermal-noise model](thermal-noise.md)
 
-Coupled windings have a separate [positive-frequency transformer model](coupled-transformers.md). General R/C netlist stamping, arbitrary connectivity, calibrated dB references and the native Metis Bode/PSD view remain open. A future frequency-domain matrix solve can use these loaded ladders and the independent nodal reference as regression fixtures.
+Coupled windings have a separate [positive-frequency transformer model](coupled-transformers.md). General R/C netlist stamping, arbitrary connectivity and the native Metis Bode/PSD view remain open. A future frequency-domain matrix solve can use these loaded ladders and the independent nodal reference as regression fixtures.
+
+### Spectral readback contract
+
+The Iris adapter borrows SI samples. Cursor readback uses the selected index in the same slices available for export. A caller can project one sample at a time with the following conversions. Each takes constant auxiliary space and constructs no additional sample buffer.
+
+| Source quantity | Readback | Reference or conversion |
+| --- | --- | --- |
+| Dimensionless voltage magnitude | `GainDb::from_magnitude` | 20 log₁₀(gain), unity gives 0 dB |
+| RMS voltage in V | `VoltageDbv::from_rms` | 20 log₁₀(V RMS / 1 V RMS), 0.1 V RMS gives −20 dBV |
+| One-sided voltage PSD in V²/Hz | `VoltageNoiseAsd::from_psd` | Square root, 4 × 10⁻¹⁸ V²/Hz gives 2 × 10⁻⁹ V/√Hz |
+
+Callers of `rms_voltage_spectrum` supply RMS samples. The adapter performs no peak-to-RMS conversion. Both logarithmic projections return negative infinity for zero. All three conversions return `None` for negative or non-finite inputs. The distinct result types preserve the selected convention until the caller extracts a number for a label or export.
+
+Run `cargo test --locked --manifest-path integrations/iris-ac/Cargo.toml` for the 1 kHz sample, analytical conversions, invalid inputs, and compile-fail checks for incompatible axes.
