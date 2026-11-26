@@ -1,8 +1,10 @@
 //! Implicit midpoint integration of a voltage-driven series RLC branch.
+mod checkpoint;
 use super::{
     Capacitance, ElectricCurrent, ElectricPotential, ElectricalImpedance, Inductance, StepError,
     Time, step,
 };
+pub use checkpoint::RlcCheckpoint;
 
 /// Instantaneous capacitor voltage and series current directed into its positive plate.
 #[derive(Debug, Clone, Copy, PartialEq)]
