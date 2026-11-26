@@ -1,8 +1,10 @@
-//! First-order series RC and RL transients under a constant voltage over each step.
+//! Series RC, RL and RLC transients under a constant voltage over each step.
 use crate::{ElectricCurrent, ElectricPotential, ElectricalImpedance};
 pub use aequitas::systems::si::quantities::{Capacitance, Inductance, Time};
 use std::fmt;
+mod rlc;
 mod step;
+pub use rlc::{RlcState, SeriesRlc};
 
 /// Invalid input or a result outside the finite representable range.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -18,7 +20,7 @@ pub enum StepError {
 impl fmt::Display for StepError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str(match self {
-            Self::Component => "expected positive finite components and time constant",
+            Self::Component => "invalid passive component value or time constant",
             Self::Interval => "expected finite nonnegative step duration",
             Self::State => "transient state or drive exceeds numeric range",
         })
