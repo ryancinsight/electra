@@ -326,3 +326,44 @@ fn narrow_circulant_solves_all_alternating_voltages() {
         }
     }
 }
+
+#[test]
+fn center_seeded_cylinder_recovers_axial_voltage_gradient() {
+    // First encounter is at the midpoint, where BFS expands toward both ends.
+    let mut text = String::from("V1 drive 0 AC 1 90\nRmid n30_0 n30_1 1\n");
+    for ring in 0..61 {
+        for sector in 0..20 {
+            let node = format!("n{ring}_{sector}");
+            if (ring, sector) != (30, 0) {
+                text.push_str(&format!(
+                    "Rr{ring}_{sector} {node} n{ring}_{} 1\n",
+                    (sector + 1) % 20
+                ));
+            }
+            if ring > 0 {
+                text.push_str(&format!(
+                    "Ra{ring}_{sector} {node} n{}_{sector} 1\n",
+                    ring - 1
+                ));
+            }
+            if ring == 0 || ring == 60 {
+                let terminal = if ring == 0 { "0" } else { "drive" };
+                text.push_str(&format!("Rt{ring}_{sector} {node} {terminal} 1\n"));
+            }
+        }
+    }
+    let deck = parse_ac(&text).unwrap();
+    let point = solve(&deck, Frequency::from_base(1.)).unwrap();
+    let mut checked = 0;
+    for (name, voltage) in deck.nodes().iter().zip(point.volts) {
+        if let Some(label) = name.strip_prefix('n') {
+            let ring: u32 = label.split_once('_').unwrap().0.parse().unwrap();
+            near(
+                voltage.into_base(),
+                Complex64::new(0., f64::from(ring + 1) / 62.),
+            );
+            checked += 1;
+        }
+    }
+    assert_eq!(checked, 1220);
+}

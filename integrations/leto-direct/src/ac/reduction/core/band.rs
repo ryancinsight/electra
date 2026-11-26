@@ -11,22 +11,19 @@ pub(super) fn solve(
     rows: &[Option<Row>],
     free: &[usize],
     volts: &mut [ElectricPotential<Complex64>],
-    slots: &[usize],
-    nodes: &[usize],
+    slots: &mut [usize],
+    nodes: &mut Vec<usize>,
 ) -> Result<(), Box<dyn Error>> {
-    let width = nodes
-        .iter()
-        .enumerate()
-        .flat_map(|(i, &node)| {
-            rows[node]
-                .as_ref()
-                .unwrap()
-                .edges
-                .keys()
-                .map(move |&j| i.abs_diff(slots[j]))
-        })
-        .max()
-        .unwrap_or(0);
+    let mut width = super::ordering::width(rows, slots, nodes);
+    if width > MAX_HALF_BAND {
+        // The last BFS node lies in the farthest level from the original seed.
+        let seed = *nodes.last().expect("nonempty core");
+        for &node in nodes.iter() {
+            slots[node] = usize::MAX;
+        }
+        super::ordering::visit(rows, seed, slots, nodes);
+        width = super::ordering::width(rows, slots, nodes);
+    }
     if width > MAX_HALF_BAND {
         return Err(
             format!("irreducible AC core half-bandwidth {width} exceeds {MAX_HALF_BAND}").into(),
