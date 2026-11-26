@@ -55,7 +55,7 @@ def check_direct_adapter(metadata, strict):
     packages = {p["id"]: p for p in metadata["packages"]}
     adapter = packages[member]
     providers = {"leto", "leto-ops"}
-    if adapter["name"] != "electra-leto-direct" or {d["name"] for d in adapter["dependencies"]} != providers | {"electra-circuit"}:
+    if adapter["name"] != "electra-leto-direct" or {d["name"] for d in adapter["dependencies"]} != providers | {"electra-circuit", "electra-ac"}:
         raise SystemExit("Unexpected direct provider in the Leto qualification workspace")
     for package in packages.values():
         name = package["name"]

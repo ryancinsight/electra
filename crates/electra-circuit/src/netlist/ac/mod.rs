@@ -1,4 +1,6 @@
 //! Flat passive AC decks with prescribed phasor sources.
+mod system;
+pub use system::AcSystem;
 mod parse;
 mod source;
 use super::ParseError;
@@ -24,6 +26,29 @@ impl AcDeck {
     /// Known voltage at each prescribed node. Free nodes contain None.
     pub fn boundary(&self) -> &[Option<ElectricPotential<Complex64>>] {
         &self.boundary
+    }
+
+    /// Visit oriented branch currents in deck order. Each callback receives
+    /// the source line, endpoint indices, and complex current in amperes.
+    pub fn branch_currents(
+        &self,
+        frequency: Frequency,
+        volts: &[ElectricPotential<Complex64>],
+        mut visit: impl FnMut(usize, [usize; 2], ElectricCurrent<Complex64>),
+    ) -> Result<(), ParseError> {
+        if volts.len() != self.names.len() {
+            return Err(ParseError::new(
+                1,
+                "voltage vector length differs from node count",
+            ));
+        }
+        for &(line, branch) in &self.branches {
+            let value = branch
+                .current(frequency, volts)
+                .map_err(|e| ParseError::new(line, e.to_string()))?;
+            visit(line, branch.endpoints(), value);
+        }
+        Ok(())
     }
 
     /// Emit additive SI coefficients for one frequency. Discard contributions

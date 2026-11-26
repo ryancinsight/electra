@@ -47,6 +47,37 @@ impl PassiveBranch {
         Self { from, to, element }
     }
 
+    /// Node indices in positive-to-negative current orientation.
+    pub fn endpoints(self) -> [usize; 2] {
+        [self.from, self.to]
+    }
+
+    /// Oriented current from the original voltage drop and device admittance.
+    pub fn current(
+        self,
+        frequency: Frequency,
+        volts: &[ElectricPotential<Complex64>],
+    ) -> Result<ElectricCurrent<Complex64>, StampError> {
+        let voltage = |i: usize| {
+            let z = volts.get(i).ok_or(StampError::Node(i))?.into_base();
+            if !finite(z) {
+                return Err(StampError::Boundary(i));
+            }
+            Ok(z)
+        };
+        let a = voltage(self.from)?;
+        let b = voltage(self.to)?;
+        check_frequency(frequency)?;
+        if self.from == self.to {
+            return Ok(ElectricCurrent::default());
+        }
+        let y = self.element.at(frequency)?;
+        if y == Complex64::default() {
+            return Ok(ElectricCurrent::default());
+        }
+        current(y, a - b).map(ElectricCurrent::from_base)
+    }
+
     /// Add this element's free-node matrix and prescribed-voltage RHS terms.
     /// The boundary slice defines the node domain. A failed call emits no terms.
     /// Callers own additive storage and check accumulated sums for overflow.
@@ -67,9 +98,7 @@ impl PassiveBranch {
                 return Err(StampError::Boundary(node));
             }
         }
-        if !frequency.as_base().is_finite() || frequency.into_base() < 0. {
-            return Err(StampError::Frequency);
-        }
+        check_frequency(frequency)?;
         if self.from == self.to {
             return Ok(());
         }
@@ -85,21 +114,7 @@ impl PassiveBranch {
         // A branch has at most one eliminated neighbor. Validate its source
         // contribution before the shared kernel invokes either user's callback.
         if let Some(v) = fixed.into_iter().flatten().next() {
-            let v = v.into_base();
-            let current = y * v;
-            // A pure susceptance exchanges the input quadratures. Each nonzero
-            // input component must survive multiplication by a nonzero admittance.
-            let (real_input, imag_input) = if y.im == 0. {
-                (v.re, v.im)
-            } else {
-                (v.im, v.re)
-            };
-            if !finite(current)
-                || (real_input != 0. && current.re == 0.)
-                || (imag_input != 0. && current.im == 0.)
-            {
-                return Err(StampError::Range);
-            }
+            current(y, v.into_base())?;
         }
         branch.stamp(fixed, matrix, rhs);
         Ok(())
@@ -108,4 +123,30 @@ impl PassiveBranch {
 
 fn finite(z: Complex64) -> bool {
     z.re.is_finite() && z.im.is_finite()
+}
+
+fn current(y: Complex64, v: Complex64) -> Result<Complex64, StampError> {
+    let current = y * v;
+    // A pure susceptance exchanges the input quadratures. Each nonzero
+    // input component must survive multiplication by a nonzero admittance.
+    let (real_input, imag_input) = if y.im == 0. {
+        (v.re, v.im)
+    } else {
+        (v.im, v.re)
+    };
+    if !finite(current)
+        || (real_input != 0. && current.re == 0.)
+        || (imag_input != 0. && current.im == 0.)
+    {
+        return Err(StampError::Range);
+    }
+    Ok(current)
+}
+
+fn check_frequency(f: Frequency) -> Result<(), StampError> {
+    if !f.as_base().is_finite() || f.into_base() < 0. {
+        Err(StampError::Frequency)
+    } else {
+        Ok(())
+    }
 }
