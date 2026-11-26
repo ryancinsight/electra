@@ -20,11 +20,7 @@ impl Block {
                 let z = y.into_base();
                 let a = scaled(z.re, scale)?;
                 let b = scaled(z.im, scale)?;
-                let k = 2 * r * order + 2 * c;
-                matrix[k] = a;
-                matrix[k + 1] = -b;
-                matrix[k + order] = b;
-                matrix[k + order + 1] = a;
+                put(&mut matrix, order, r, c, a, b);
             }
             let z = system
                 .currents()
@@ -36,4 +32,12 @@ impl Block {
         }
         Ok(Self { matrix, rhs })
     }
+}
+
+pub(super) fn put(matrix: &mut [f64], order: usize, r: usize, c: usize, a: f64, b: f64) {
+    let k = 2 * r * order + 2 * c;
+    matrix[k] = a;
+    matrix[k + 1] = -b;
+    matrix[k + order] = b;
+    matrix[k + order + 1] = a;
 }
