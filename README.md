@@ -1,6 +1,8 @@
 # Electra
 
-Electra is the Atlas project for electronic circuit simulation and PCB design. The headless solver supports linear DC resistor networks with independent sources and all four linear controlled-source families. The 0.2 roadmap increments add DC transfer sweeps, floating voltage sources, zero-volt current probes, typed hierarchical subcircuits and full modified nodal analysis for feedback circuits to the 0.1.0 workspace. The 0.3 work includes loaded RC ladder response, resistor thermal noise, capacitor-bank input impedance with ESR and ESL, and coupled-winding and ideal-transformer response. The v1 target is a native schematic-to-simulation-to-fabrication workflow with KiCad file interchange.
+Electra is the Atlas project for electronic circuit simulation and PCB design. The headless solver supports linear DC resistor networks with independent sources and all four linear controlled-source families. The 0.2 roadmap increments add DC transfer sweeps, floating voltage sources, zero-volt current probes, typed hierarchical subcircuits and full modified nodal analysis for feedback circuits to the 0.1.0 workspace. The 0.3 work includes loaded RC ladder response, resistor thermal noise, capacitor-bank input impedance with ESR and ESL, and coupled-winding and ideal-transformer response. The 0.4 work adds typed RC and RL transient steps. The v1 target is a native schematic-to-simulation-to-fabrication workflow with KiCad file interchange.
+
+Run `python3 scripts/v1-progress.py` to see the workspace version and completed acceptance checks for every milestone through 1.0. Each check has equal weight in the count. The [backlog](backlog.md) defines scope and release dependencies, and the [checklist](docs/checklist.md) records qualification evidence.
 
 ```sh
 cargo run --locked --offline --bin electra -- ac-matrix examples/ac-bridge.cir 1000
