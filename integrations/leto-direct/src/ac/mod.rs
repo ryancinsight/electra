@@ -2,6 +2,8 @@
 mod block;
 mod components;
 mod residual;
+mod scaling;
+mod tree;
 use super::PivotedLu;
 use electra_ac::{Complex64, ElectricCurrent, ElectricPotential, Frequency};
 use electra_circuit::{AcDeck, direct::DirectFactor};
@@ -16,7 +18,8 @@ pub struct AcPoint {
 }
 
 /// Solve a parsed passive deck at one frequency. The dense factor is bounded
-/// to 128 free complex voltages per connected component. An unanchored component is rejected even
+/// to 128 free voltages per component. Larger tree components use leaf elimination.
+/// An unanchored component is rejected even
 /// with zero excitation. Each free equation is checked in original SI units.
 pub fn solve(deck: &AcDeck, frequency: Frequency) -> Result<AcPoint, Box<dyn Error>> {
     let system = deck.assemble(frequency)?;
@@ -25,7 +28,12 @@ pub fn solve(deck: &AcDeck, frequency: Frequency) -> Result<AcPoint, Box<dyn Err
         .iter()
         .map(|v| v.unwrap_or_default())
         .collect();
-    components::visit(deck, &system, PivotedLu::MAX_ORDER / 2, |free, slots| {
+    let dense_limit = PivotedLu::MAX_ORDER / 2;
+    components::visit(deck, &system, dense_limit, |free, slots| {
+        if free.len() > dense_limit {
+            return tree::solve(&system, free, slots, &mut volts);
+        }
+
         let block::Block { matrix, rhs } = block::Block::new(&system, free, slots)?;
         let order = 2 * free.len();
         let factor = PivotedLu::from_values(order, matrix)?;

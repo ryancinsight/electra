@@ -7,27 +7,14 @@ pub(super) struct Block {
     pub rhs: Vec<f64>,
 }
 
-fn scaled(v: f64, scale: f64) -> Result<f64, Box<dyn Error>> {
-    let value = v / scale;
-    if !value.is_finite() || (value == 0. && v != 0.) {
-        return Err("AC row scaling exceeds numeric range".into());
-    }
-    Ok(value)
-}
-
+use super::scaling::{row_scale, scaled};
 impl Block {
     pub fn new(system: &AcSystem, free: &[usize], slots: &[usize]) -> Result<Self, Box<dyn Error>> {
         let order = 2 * free.len();
         let mut matrix = vec![0.; order * order];
         let mut rhs = vec![0.; order];
         for (r, &i) in free.iter().enumerate() {
-            let scale = system.row(i).fold(0.0_f64, |scale, (_, y)| {
-                let z = y.into_base();
-                scale.max(z.re.abs()).max(z.im.abs())
-            });
-            if scale == 0. {
-                return Err("singular AC equation with zero admittance".into());
-            }
+            let scale = row_scale(system, i)?;
             for (j, y) in system.row(i) {
                 let c = slots[j];
                 let z = y.into_base();
