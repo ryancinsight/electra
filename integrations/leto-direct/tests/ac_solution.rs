@@ -99,6 +99,7 @@ fn rejects_unanchored_resonant_and_oversize_systems() {
             )
         })
         .collect::<String>();
+    let text = text + "Rloop n128 n0 1\n";
     assert!(
         solve(&parse_ac(&text).unwrap(), f)
             .err()
@@ -167,7 +168,7 @@ fn solves_many_interleaved_rc_channels_with_shared_drive() {
 }
 
 #[test]
-fn a_dc_open_splits_a_chain_that_exceeds_the_ac_limit() {
+fn a_dc_open_splits_a_chain_that_uses_the_tree_solver_at_ac() {
     let mut text = String::from("V in 0 AC 1\n");
     for i in 0..129 {
         text.push_str(&format!("R{i} in n{i} 1\n"));
@@ -181,11 +182,43 @@ fn a_dc_open_splits_a_chain_that_exceeds_the_ac_limit() {
             .iter()
             .all(|v| v.into_base() == Complex64::from(1.))
     );
-    assert!(
-        solve(&deck, Frequency::from_base(1.))
-            .err()
-            .unwrap()
-            .to_string()
-            .contains("exceeds")
-    );
+    let point = solve(&deck, Frequency::from_base(1.)).unwrap();
+    for v in &point.volts[2..] {
+        near(v.into_base(), Complex64::from(1.));
+    }
+}
+
+#[test]
+fn large_branched_star_matches_loaded_node_solution() {
+    let mut text = String::from("Vdrive drive 0 AC 1\n");
+    // Intern a leaf first so traversal starts away from the branching hub.
+    for i in 0..200 {
+        text.push_str(&format!("R{i} leaf{i} hub 1\nC{i} leaf{i} 0 1\n"));
+    }
+    text.push_str("Rdrive drive hub 1\n");
+    let deck = parse_ac(&text).unwrap();
+    let point = solve(&deck, Frequency::from_base(TAU.recip())).unwrap();
+    let hub = Complex64::from(1.) / Complex64::new(101., 100.);
+    let leaf = hub / Complex64::new(1., 1.);
+    for (node, v) in deck.nodes().iter().zip(point.volts) {
+        if node.starts_with("leaf") {
+            near(v.into_base(), leaf);
+        }
+        if node == "hub" {
+            near(v.into_base(), hub);
+        }
+    }
+}
+
+#[test]
+fn resonant_leaf_requiring_pivot_is_reported() {
+    let mut text = String::from("Vdrive drive 0 AC 1\nRdrive drive n0 1\n");
+    for i in 1..129 {
+        text.push_str(&format!("R{i} n{} n{i} 1\n", i - 1));
+    }
+    text.push_str("Cleaf n128 leaf 1\nLleaf leaf 0 1\n");
+    let err = solve(&parse_ac(&text).unwrap(), Frequency::from_base(TAU.recip()))
+        .err()
+        .unwrap();
+    assert!(err.to_string().contains("tree pivot"), "{err}");
 }

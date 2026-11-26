@@ -5,7 +5,7 @@ use std::error::Error;
 pub(super) fn visit(
     deck: &AcDeck,
     system: &AcSystem,
-    limit: usize,
+    dense_limit: usize,
     mut solve: impl FnMut(&[usize], &[usize]) -> Result<(), Box<dyn Error>>,
 ) -> Result<(), Box<dyn Error>> {
     let mut slots = vec![usize::MAX; deck.nodes().len()];
@@ -25,13 +25,6 @@ pub(super) fn visit(
             anchored |= system.has_boundary_branch(i);
             for (j, _) in system.row(i) {
                 if slots[j] == usize::MAX {
-                    if nodes.len() == limit {
-                        return Err(format!(
-                            "AC component containing {} exceeds {limit} free nodes",
-                            deck.nodes()[seed]
-                        )
-                        .into());
-                    }
                     slots[j] = nodes.len();
                     nodes.push(j);
                 }
@@ -40,10 +33,13 @@ pub(super) fn visit(
         if !anchored {
             return Err(format!("unanchored AC component at {}", deck.nodes()[seed]).into());
         }
-        // Keep pivot ordering independent of traversal order and consistent with deck indices.
-        nodes.sort_unstable();
-        for (slot, &node) in nodes.iter().enumerate() {
-            slots[node] = slot;
+        // Preserve the deck's pivot ordering for the existing dense path.
+        // Larger components retain parent-before-child traversal order.
+        if nodes.len() <= dense_limit {
+            nodes.sort_unstable();
+            for (slot, &node) in nodes.iter().enumerate() {
+                slots[node] = slot;
+            }
         }
         solve(&nodes, &slots)?;
     }
