@@ -1,4 +1,5 @@
 //! Read linear DC decks and elaborate typed, hierarchical designs.
+pub(crate) mod ac;
 mod builder;
 mod control;
 mod device;

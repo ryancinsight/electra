@@ -13,10 +13,13 @@
 mod error;
 mod ladder;
 pub mod magnetics;
+pub mod nodal;
 pub mod pdn;
 mod port;
 mod response;
+mod summation;
 mod sweep;
+pub use summation::PhasorSum;
 
 pub use aequitas::systems::si::quantities::{
     Angle, Capacitance, Dimensionless, ElectricConductance, ElectricCurrent, ElectricPotential,

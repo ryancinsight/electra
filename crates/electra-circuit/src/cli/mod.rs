@@ -1,4 +1,5 @@
 //! Command-line analysis selection and dimensioned convergence settings.
+pub(crate) mod ac_matrix;
 use electra_circuit::{
     Dimensionless, ElectricCurrent, ElectricPotential, MnaOptions, SolveOptions,
 };

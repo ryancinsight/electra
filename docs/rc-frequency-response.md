@@ -52,7 +52,7 @@ cargo run --release --locked --manifest-path crates/electra-ac/Cargo.toml --exam
 
 RC ladders now propagate independent resistor sources and expose a borrowed Iris voltage PSD trace. [Thermal-noise model](thermal-noise.md)
 
-Coupled windings have a separate [positive-frequency transformer model](coupled-transformers.md). General R/C netlist stamping, arbitrary connectivity and the native Metis Bode/PSD view remain open. A future frequency-domain matrix solve can use these loaded ladders and the independent nodal reference as regression fixtures.
+Coupled windings have a separate [positive-frequency transformer model](coupled-transformers.md). The [passive nodal API](passive-ac-stamps.md) assembles arbitrary R/C/L connections. Flat passive AC decks can export their assembled equations. General complex solving and the native Metis Bode/PSD view remain open. A future frequency-domain matrix solve can use these loaded ladders and the independent nodal reference as regression fixtures.
 
 ### Spectral readback contract
 

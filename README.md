@@ -3,6 +3,7 @@
 Electra is the Atlas project for electronic circuit simulation and PCB design. The headless solver supports linear DC resistor networks with independent sources and all four linear controlled-source families. The 0.2 roadmap increments add DC transfer sweeps, floating voltage sources, zero-volt current probes, typed hierarchical subcircuits and full modified nodal analysis for feedback circuits to the 0.1.0 workspace. The 0.3 work includes loaded RC ladder response, resistor thermal noise, capacitor-bank input impedance with ESR and ESL, and coupled-winding and ideal-transformer response. The v1 target is a native schematic-to-simulation-to-fabrication workflow with KiCad file interchange.
 
 ```sh
+cargo run --locked --offline --bin electra -- ac-matrix examples/ac-bridge.cir 1000
 cargo run --locked --offline --bin electra -- op examples/divider.cir
 cargo run --locked --offline --bin electra -- op examples/rail.cir
 cargo run --locked --offline --bin electra -- dc examples/controlled-sources.cir
@@ -13,6 +14,8 @@ cargo run --locked --offline --bin electra -- dc examples/hierarchical-divider.c
 ```
 
 The divider yields 6 V at the tap and 3 mA through each resistor. The rail example distributes 100 mA and 200 mA to separate taps of a 5 V supply. Their expected voltages are 4.97 V and 4.95 V.
+
+The flat AC reader exports the reduced complex nodal equations at a requested frequency. [AC deck syntax and sparse CSV format](docs/passive-ac-stamps.md#flat-ac-netlists)
 
 ## Input and results
 

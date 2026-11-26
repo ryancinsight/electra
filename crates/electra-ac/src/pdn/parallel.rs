@@ -22,45 +22,20 @@ fn reciprocal(z: Complex64) -> Result<Complex64, BankError> {
     Ok(inverse)
 }
 
-/// Neumaier summation retains small terms between cancelling reactive branches.
-#[derive(Default)]
-struct Sum {
-    value: f64,
-    correction: f64,
-}
-
-impl Sum {
-    fn add(&mut self, value: f64) {
-        let next = self.value + value;
-        self.correction += if self.value.abs() >= value.abs() {
-            (self.value - next) + value
-        } else {
-            (value - next) + self.value
-        };
-        self.value = next;
-    }
-
-    fn total(self) -> f64 {
-        self.value + self.correction
-    }
-}
-
 #[derive(Default)]
 pub(super) struct Parallel {
-    conductance: Sum,
-    susceptance: Sum,
+    sum: crate::PhasorSum,
 }
 
 impl Parallel {
     pub(super) fn add(&mut self, z: Complex64) -> Result<(), BankError> {
         let y = reciprocal(z)?;
-        self.conductance.add(y.re);
-        self.susceptance.add(y.im);
+        self.sum.add(y);
         Ok(())
     }
 
     pub(super) fn impedance(self) -> Result<PortImpedance, BankError> {
-        let y = Complex64::new(self.conductance.total(), self.susceptance.total());
+        let y = self.sum.total();
         if y.re == 0.0 && y.im == 0.0 {
             return Ok(PortImpedance::Open);
         }
