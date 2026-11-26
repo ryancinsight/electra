@@ -12,7 +12,7 @@ Use `electra_leto_direct::ac::solve` with a parsed `AcDeck` to obtain typed volt
 
 ## Algorithm and limits
 
-Matrix export and solve use the same compensated sparse assembly. Each nonzero free-node complex row is divided by the largest absolute real or imaginary coefficient component in that row. An entry a + jb becomes the real block [[a, −b], [b, a]] for interleaved voltage quadratures. Connectivity is checked using nonzero off-diagonals and the net admittance to prescribed nodes. Traversal uses the ordered sparse row index. Prescribed nodes are eliminated first, so channels can share a voltage drive or ground and still be independent. Each connected component is factored and released separately, including for zero excitation. At 128 free nodes in one component the order is 256 and each dense f64 matrix occupies 512 KiB. Factorization entails a working copy. Storage also includes sparse coefficients, vectors and provider overhead. Larger acyclic components use the tree solver described below. Cyclic components above the dense limit are rejected before any dense matrix is allocated. Total deck storage also grows with the number of nodes and sparse entries.
+Matrix export and solve use the same compensated sparse assembly. Each nonzero free-node complex row is divided by the largest absolute real or imaginary coefficient component in that row. An entry a + jb becomes the real block [[a, −b], [b, a]] for interleaved voltage quadratures. Connectivity is checked using nonzero off-diagonals and the net admittance to prescribed nodes. Traversal uses the ordered sparse row index. Prescribed nodes are eliminated first, so channels can share a voltage drive or ground and still be independent. Each connected component is factored and released separately, including for zero excitation. At 128 free nodes in one component the order is 256 and each dense f64 matrix occupies 512 KiB. Factorization entails a working copy. Storage also includes sparse coefficients, vectors and provider overhead. Larger acyclic components use the tree solver described below. Large cyclic components use low-degree elimination with a bounded pivoted remainder. Total deck storage also grows with the number of nodes and sparse entries.
 
 A solution must pass both checks:
 
@@ -49,7 +49,7 @@ The regression suite also checks interleaved node numbering and a 129-node capac
 
 The solver inspects the reduced admittance graph at the requested frequency. Each non-root node in an acyclic component has exactly one earlier neighbor in breadth-first order. The solver eliminates leaves toward the root, then substitutes from the root outward. Each elimination updates only the parent diagonal and right-hand side. The row-normalized coefficients from parent to child and child to parent are stored separately. Diagonal and current updates use compensated complex summation.
 
-For a tree of n free nodes the factor workspace holds n row records, and both elimination and substitution take O(n) arithmetic operations. Sparse assembly, ordered-map lookups, parsing and CSV output have separate costs. A zero elimination pivot can occur even on a nonsingular resonant tree. In this case the CLI reports that sparse pivoting is required. Both original-equation and physical branch KCL checks run before voltage output.
+For a tree of n free nodes the factor workspace holds n row records, and both elimination and substitution take O(n) arithmetic operations. Sparse assembly, ordered-map lookups, parsing and CSV output have separate costs. A zero elimination pivot can occur even on a nonsingular resonant tree. An unusable leaf pivot transfers the component to sparse reduction, which can enforce a zero-diagonal leaf constraint directly. Both original-equation and physical branch KCL checks run before voltage output.
 
 The independent fixture builds grounded binary RLC trees at 1 kHz and compares every free-node voltage with SciPy's sparse direct solver. Elapsed times are medians of seven release CLI executions, including parsing and CSV output. The error columns give maximum magnitudes.
 
@@ -59,4 +59,20 @@ The independent fixture builds grounded binary RLC trees at 1 kHz and compares e
 | 1,023 | 3.66 ms | 2.12 × 10⁻¹⁵ V | 8.97 × 10⁻¹⁷ A |
 | 8,191 | 22.82 ms | 2.78 × 10⁻¹⁶ V | 8.50 × 10⁻¹⁷ A |
 
-Run `python3 integrations/leto-direct/scripts/verify-tree.py integrations/leto-direct/target/release/electra-ac-solve` after building the release binary. Rust regressions also cover an analytical loaded star, frequency-dependent connectivity, cyclic rejection and an unusable leaf pivot.
+Run `python3 integrations/leto-direct/scripts/verify-tree.py integrations/leto-direct/target/release/electra-ac-solve` after building the release binary. Rust regressions also cover an analytical loaded star, frequency-dependent connectivity, a cyclic network and a resonant leaf constraint.
+
+## Cyclic components and resonant leaves
+
+At each frequency, the solver can reduce a large component with cycles by removing rows with one or two remaining neighbors. A two-neighbor elimination introduces at most one undirected edge. The solver records the row for reverse substitution. Diagonal, current and repeated edge updates use compensated complex summation. A scalar pivot smaller than half of an incoming coefficient in the largest-quadrature norm is deferred. For a zero-diagonal leaf with nonzero coupling in both directions, the leaf equation directly determines its neighbor’s voltage. The neighbor equation then recovers the leaf voltage during reverse substitution.
+
+Leto applies pivoted LU to the remaining system, up to 128 complex unknowns. Dense factor storage depends on that remainder. A larger irreducible core returns an error before dense allocation. A small residual alone does not guarantee voltage accuracy near singular resonance. Both the unscaled equations and the original physical branch currents are checked before results are emitted.
+
+The seeded ring fixture drives two nodes through resistors with different source phases and includes series R/L elements and shunt capacitors. SciPy independently assembles and solves the complex sparse equations. Median times include CLI startup, parsing, solution, checks and CSV output across seven release runs.
+
+| Ring nodes | Median elapsed | Maximum voltage difference | Maximum physical KCL residual |
+| ---: | ---: | ---: | ---: |
+| 129 | 2.45 ms | 3.53 × 10⁻¹⁵ V | 1.87 × 10⁻¹⁶ A |
+| 1,023 | 7.41 ms | 3.41 × 10⁻¹⁵ V | 1.80 × 10⁻¹⁶ A |
+| 8,191 | 30.37 ms | 3.87 × 10⁻¹⁵ V | 1.51 × 10⁻¹⁶ A |
+
+Reproduce with `python3 integrations/leto-direct/scripts/verify-tree.py integrations/leto-direct/target/release/electra-ac-solve --ring`. Rust fixtures check both arms of a driven resistor ring, a subdivided multicycle network against its lumped equivalent, a resonant leaf with a known voltage, and rejection of a 130-node degree-four core.

@@ -87,25 +87,20 @@ fn rejects_unanchored_resonant_and_oversize_systems() {
     for text in ["R1 a b 1\nR2 b c 3\nR3 c a 7", "C1 n 0 1\nL1 n 0 1"] {
         assert!(solve(&parse_ac(text).unwrap(), f).is_err());
     }
-    let text = (0..129)
-        .map(|i| {
-            format!(
-                "R{i} n{i} {} 1\n",
-                if i == 0 {
-                    "0".into()
-                } else {
-                    format!("n{}", i - 1)
-                }
-            )
-        })
-        .collect::<String>();
-    let text = text + "Rloop n128 n0 1\n";
+    let mut text = String::new();
+    // A 130-node circulant graph has degree four everywhere.
+    for i in 0..130 {
+        for step in [1, 2] {
+            text.push_str(&format!("R{i}_{step} n{i} n{} 1\n", (i + step) % 130));
+        }
+    }
+    text.push_str("Rground n0 0 1");
     assert!(
         solve(&parse_ac(&text).unwrap(), f)
             .err()
             .unwrap()
             .to_string()
-            .contains("exceeds")
+            .contains("irreducible AC core")
     );
 }
 
@@ -211,14 +206,73 @@ fn large_branched_star_matches_loaded_node_solution() {
 }
 
 #[test]
-fn resonant_leaf_requiring_pivot_is_reported() {
+fn resonant_leaf_constraint_is_solved() {
     let mut text = String::from("Vdrive drive 0 AC 1\nRdrive drive n0 1\n");
     for i in 1..129 {
         text.push_str(&format!("R{i} n{} n{i} 1\n", i - 1));
     }
     text.push_str("Cleaf n128 leaf 1\nLleaf leaf 0 1\n");
-    let err = solve(&parse_ac(&text).unwrap(), Frequency::from_base(TAU.recip()))
-        .err()
-        .unwrap();
-    assert!(err.to_string().contains("tree pivot"), "{err}");
+    let deck = parse_ac(&text).unwrap();
+    let point = solve(&deck, Frequency::from_base(TAU.recip())).unwrap();
+    for (label, v) in deck.nodes().iter().zip(&point.volts) {
+        if label == "leaf" {
+            near(v.into_base(), Complex64::new(0., 1. / 129.));
+        }
+        if label == "n128" {
+            assert!(v.into_base().re.hypot(v.into_base().im) < 1e-13);
+        }
+    }
+}
+
+#[test]
+fn driven_ring_matches_both_analytical_resistor_arms() {
+    let mut text = String::from("Vdrive in 0 AC 1 90\nRsource in n0 1\nRload n128 0 1\n");
+    for i in 0..256 {
+        text.push_str(&format!("R{i} n{i} n{} 1\n", (i + 1) % 256));
+    }
+    let deck = parse_ac(&text).unwrap();
+    let point = solve(&deck, Frequency::from_base(1.)).unwrap();
+    for (name, v) in deck.nodes().iter().zip(point.volts) {
+        if let Some(index) = name.strip_prefix('n') {
+            let i: usize = index.parse().unwrap();
+            let distance = i.min(256 - i) as f64;
+            near(
+                v.into_base(),
+                Complex64::new(0., (65. - distance / 2.) / 66.),
+            );
+        }
+    }
+}
+
+#[test]
+fn series_reduction_preserves_a_multicycle_pivoted_core() {
+    let core = "V1 drive 0 AC 1 90\nRin drive a 4\nRac a c 2\nRbc b c 3\nRad a d 5\nRbd b d 7\nRcd c d 9\nRload b 0 1\nCload d 0 0.1\n";
+    let f = Frequency::from_base(0.75);
+    let reference = parse_ac(&format!("{core}Rab a b 150")).unwrap();
+    let exact = solve(&reference, f).unwrap();
+    let voltage = |name: &str| {
+        exact.volts[reference.nodes().iter().position(|n| n == name).unwrap()].into_base()
+    };
+    let mut text = String::from(core);
+    let mut last = String::from("a");
+    for i in 1..=150 {
+        let next = if i == 150 {
+            "b".to_owned()
+        } else {
+            format!("n{i}")
+        };
+        text.push_str(&format!("Rs{i} {last} {next} 1\n"));
+        last = next;
+    }
+    let deck = parse_ac(&text).unwrap();
+    let point = solve(&deck, f).unwrap();
+    for (name, v) in deck.nodes().iter().zip(point.volts) {
+        let expected = if let Some(n) = name.strip_prefix('n') {
+            voltage("a")
+                + (voltage("b") - voltage("a")) * Complex64::from(n.parse::<f64>().unwrap() / 150.)
+        } else {
+            voltage(name)
+        };
+        near(v.into_base(), expected);
+    }
 }

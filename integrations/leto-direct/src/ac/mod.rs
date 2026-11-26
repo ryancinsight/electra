@@ -1,6 +1,7 @@
 //! Bounded complex AC operating points using the shared pivoted LU provider.
 mod block;
 mod components;
+mod reduction;
 mod residual;
 mod scaling;
 mod tree;
@@ -31,7 +32,10 @@ pub fn solve(deck: &AcDeck, frequency: Frequency) -> Result<AcPoint, Box<dyn Err
     let dense_limit = PivotedLu::MAX_ORDER / 2;
     components::visit(deck, &system, dense_limit, |free, slots| {
         if free.len() > dense_limit {
-            return tree::solve(&system, free, slots, &mut volts);
+            if !tree::try_solve(&system, free, slots, &mut volts)? {
+                reduction::solve(&system, free, slots, &mut volts, dense_limit)?;
+            }
+            return Ok(());
         }
 
         let block::Block { matrix, rhs } = block::Block::new(&system, free, slots)?;

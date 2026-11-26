@@ -1,5 +1,5 @@
 //! Leaf-to-root Schur elimination on a breadth-first ordered admittance tree.
-use super::scaling::{row_scale, scaled};
+use super::scaling::{quotient, row_scale, scaled};
 use electra_ac::{Complex64, ElectricPotential, PhasorSum};
 use electra_circuit::AcSystem;
 use std::error::Error;
@@ -13,29 +13,12 @@ struct Row {
     rhs: PhasorSum,
 }
 
-fn quotient(a: Complex64, b: Complex64) -> Result<Complex64, Box<dyn Error>> {
-    let scale = b.re.abs().max(b.im.abs());
-    if scale == 0. || !scale.is_finite() {
-        return Err("unusable AC tree pivot; a pivoted sparse solve is required".into());
-    }
-    let u = b.re / scale;
-    let v = b.im / scale;
-    let ar = scaled(a.re, scale)?;
-    let ai = scaled(a.im, scale)?;
-    let norm = u.mul_add(u, v * v);
-    let z = Complex64::new(ar.mul_add(u, ai * v) / norm, ai.mul_add(u, -ar * v) / norm);
-    if !z.re.is_finite() || !z.im.is_finite() {
-        return Err("AC tree division exceeds numeric range".into());
-    }
-    Ok(z)
-}
-
-pub(super) fn solve(
+pub(super) fn try_solve(
     system: &AcSystem,
     free: &[usize],
     slots: &[usize],
     volts: &mut [ElectricPotential<Complex64>],
-) -> Result<(), Box<dyn Error>> {
+) -> Result<bool, Box<dyn Error>> {
     let mut rows = vec![Row::default(); free.len()];
     for (r, &i) in free.iter().enumerate() {
         let scale = row_scale(system, i)?;
@@ -52,7 +35,7 @@ pub(super) fn solve(
                 std::cmp::Ordering::Equal => rows[r].diagonal.add(value),
                 std::cmp::Ordering::Less => {
                     if rows[r].parent.replace(c).is_some() {
-                        return Err("cyclic AC component exceeds dense order limit".into());
+                        return Ok(false);
                     }
                     rows[r].to_parent = value;
                 }
@@ -65,6 +48,9 @@ pub(super) fn solve(
         let p = row
             .parent
             .expect("each non-root traversal node has an earlier neighbor");
+        if row.diagonal.total() == Complex64::default() {
+            return Ok(false);
+        }
         let multiplier = quotient(row.from_parent, row.diagonal.total())?;
         rows[p].diagonal.add(-multiplier * row.to_parent);
         rows[p].rhs.add(-multiplier * row.rhs.total());
@@ -76,5 +62,5 @@ pub(super) fn solve(
         }
         volts[free[r]] = ElectricPotential::from_base(quotient(rhs.total(), row.diagonal.total())?);
     }
-    Ok(())
+    Ok(true)
 }

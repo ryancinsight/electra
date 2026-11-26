@@ -35,6 +35,7 @@ Use the checkboxes for evidence state. The [design evidence](design-evidence.md)
 
 - [x] Stamp typed passive R/C/L branches on arbitrary node pairs using shared boundary elimination. Recover both independent bridge equations with complex drive and reversed endpoints. [API, range checks and assembly measurements](passive-ac-stamps.md)
 - [x] Parse flat R/C/L decks with grounded phasor sources and export the assembled sparse equations. Verify both exported rows against an independent complex bridge solution. [Deck qualification](passive-ac-stamps.md#flat-ac-netlists)
+- [x] Solve reducible cyclic AC networks and resonant leaf constraints. Check all ring voltages against SciPy and limit dense allocation by remaining core size. [Qualification](ac-direct.md#cyclic-components-and-resonant-leaves)
 - [x] Solve large connected passive trees without allocating a dense matrix. Verify every voltage against an independent sparse solver and check physical KCL. [Connected tree qualification](ac-direct.md#connected-trees-above-128-free-nodes)
 - [x] Partition the frequency-specific reduced system into independent components and reuse the bounded solver for decks above 128 total free nodes. [Qualification](ac-direct.md#independent-channels)
 - [x] Solve a parsed passive AC deck with the bounded Leto backend. Verify solved voltages and KCL against the headless ladder and independent bridge solution. [Solver and qualification](ac-direct.md)
