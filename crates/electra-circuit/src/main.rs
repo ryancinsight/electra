@@ -30,7 +30,14 @@ fn write_mna(out: &mut impl Write, result: &electra_circuit::MnaPoint<'_>) -> io
 }
 
 fn run() -> Result<(), Box<dyn std::error::Error>> {
-    let request = Request::parse(env::args_os().skip(1))?;
+    let mut args = env::args_os().skip(1).peekable();
+    if args.peek().is_some_and(|arg| arg == "ac-matrix") {
+        args.next();
+        let mut out = io::BufWriter::new(io::stdout().lock());
+        cli::ac_matrix::run(args, &mut out)?;
+        return Ok(out.flush()?);
+    }
+    let request = Request::parse(args)?;
     let circuit = electra_circuit::parse_file(request.path)?;
     let mut out = io::BufWriter::new(io::stdout().lock());
     match (

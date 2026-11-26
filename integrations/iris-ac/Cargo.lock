@@ -37,6 +37,7 @@ name = "electra-ac"
 version = "0.1.0"
 dependencies = [
  "aequitas",
+ "electra-network",
  "eunomia",
 ]
 
@@ -46,6 +47,13 @@ version = "0.1.0"
 dependencies = [
  "electra-ac",
  "iris-viz",
+]
+
+[[package]]
+name = "electra-network"
+version = "0.1.0"
+dependencies = [
+ "aequitas",
 ]
 
 [[package]]

@@ -1,0 +1,8 @@
+* Unit drive, two free nodes, and a bridging capacitor.
+Vdrive in 0 AC 1
+R1 in a 1
+R2 a 0 1
+R3 in b 1
+R4 b 0 0.5
+Cbridge a b 1
+.end
