@@ -1,5 +1,6 @@
 //! Map the remaining sparse rows into Leto's bounded real pivoted LU.
 mod band;
+mod ordering;
 use super::Row;
 use crate::{PivotedLu, ac::block};
 use electra_ac::{Complex64, ElectricPotential};
@@ -17,24 +18,11 @@ pub(super) fn solve(
         if rows[start].is_none() || slots[start] != usize::MAX {
             continue;
         }
-        nodes.clear();
-        nodes.push(start);
-        slots[start] = 0;
-        let mut cursor = 0;
-        while cursor < nodes.len() {
-            let node = nodes[cursor];
-            for &next in rows[node].as_ref().unwrap().edges.keys() {
-                if slots[next] == usize::MAX {
-                    slots[next] = nodes.len();
-                    nodes.push(next);
-                }
-            }
-            cursor += 1;
-        }
+        ordering::visit(rows, start, &mut slots, &mut nodes);
         if nodes.len() <= limit {
             solve_block(rows, free, volts, &slots, &nodes)?;
         } else {
-            band::solve(rows, free, volts, &slots, &nodes)?;
+            band::solve(rows, free, volts, &mut slots, &mut nodes)?;
         }
     }
     Ok(())
