@@ -4,7 +4,7 @@ pub use aequitas::systems::si::quantities::{Capacitance, Inductance, Time};
 use std::fmt;
 mod rlc;
 mod step;
-pub use rlc::{RlcState, SeriesRlc};
+pub use rlc::{RlcCheckpoint, RlcState, SeriesRlc};
 
 /// Invalid input or a result outside the finite representable range.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
