@@ -1,4 +1,5 @@
 //! Map the remaining sparse rows into Leto's bounded real pivoted LU.
+mod band;
 use super::Row;
 use crate::{PivotedLu, ac::block};
 use electra_ac::{Complex64, ElectricPotential};
@@ -24,18 +25,17 @@ pub(super) fn solve(
             let node = nodes[cursor];
             for &next in rows[node].as_ref().unwrap().edges.keys() {
                 if slots[next] == usize::MAX {
-                    if nodes.len() == limit {
-                        return Err(
-                            format!("irreducible AC core exceeds pivoted limit {limit}").into()
-                        );
-                    }
                     slots[next] = nodes.len();
                     nodes.push(next);
                 }
             }
             cursor += 1;
         }
-        solve_block(rows, free, volts, &slots, &nodes)?;
+        if nodes.len() <= limit {
+            solve_block(rows, free, volts, &slots, &nodes)?;
+        } else {
+            band::solve(rows, free, volts, &slots, &nodes)?;
+        }
     }
     Ok(())
 }

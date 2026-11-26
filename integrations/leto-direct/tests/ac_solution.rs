@@ -88,9 +88,9 @@ fn rejects_unanchored_resonant_and_oversize_systems() {
         assert!(solve(&parse_ac(text).unwrap(), f).is_err());
     }
     let mut text = String::new();
-    // A 130-node circulant graph has degree four everywhere.
+    // A wide circulant exceeds the banded storage budget.
     for i in 0..130 {
-        for step in [1, 2] {
+        for step in 1..=33 {
             text.push_str(&format!("R{i}_{step} n{i} n{} 1\n", (i + step) % 130));
         }
     }
@@ -300,6 +300,29 @@ Lh leaf 0 1
     for (label, v) in deck.nodes().iter().zip(&result.volts) {
         if label.starts_with('n') {
             near(v.into_base(), Complex64::from(0.5));
+        }
+    }
+}
+
+#[test]
+fn narrow_circulant_solves_all_alternating_voltages() {
+    let mut text = String::from("V1 drive 0 AC 1 90\n");
+    for i in 0..130 {
+        let terminal = if i % 2 == 0 { "0" } else { "drive" };
+        text.push_str(&format!("Rt{i} n{i} {terminal} 1\n"));
+        for step in [1, 2] {
+            text.push_str(&format!("R{i}_{step} n{i} n{} 1\n", (i + step) % 130));
+        }
+    }
+    let deck = parse_ac(&text).unwrap();
+    let point = solve(&deck, Frequency::from_base(1.)).unwrap();
+    for (label, v) in deck.nodes().iter().zip(point.volts) {
+        if let Some(number) = label.strip_prefix('n') {
+            let even = number.parse::<usize>().unwrap() % 2 == 0;
+            near(
+                v.into_base(),
+                Complex64::new(0., if even { 0.4 } else { 0.6 }),
+            );
         }
     }
 }
