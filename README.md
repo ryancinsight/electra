@@ -15,7 +15,7 @@ cargo run --locked --offline --bin electra -- dc examples/hierarchical-divider.c
 
 The divider yields 6 V at the tap and 3 mA through each resistor. The rail example distributes 100 mA and 200 mA to separate taps of a 5 V supply. Their expected voltages are 4.97 V and 4.95 V.
 
-The flat AC reader exports the reduced complex nodal equations at a requested frequency. [AC deck syntax and sparse CSV format](docs/passive-ac-stamps.md#flat-ac-netlists)
+The flat AC reader exports the reduced complex nodal equations at a requested frequency. The [opt-in AC solver](docs/ac-direct.md) returns complex node voltages for decks with up to 128 free nodes per connected component and checks current balance from the original branches. [AC deck syntax and sparse CSV format](docs/passive-ac-stamps.md#flat-ac-netlists)
 
 ## Input and results
 

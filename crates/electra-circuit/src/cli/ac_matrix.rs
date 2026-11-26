@@ -1,6 +1,6 @@
 //! Deterministic sparse AC matrix export.
-use electra_ac::{Complex64, Frequency, PhasorSum};
-use std::{collections::BTreeMap, error::Error, ffi::OsString, fs, io::Write, path::PathBuf};
+use electra_ac::{Complex64, Frequency};
+use std::{error::Error, ffi::OsString, fs, io::Write, path::PathBuf};
 
 pub(crate) fn run(
     mut args: impl Iterator<Item = OsString>,
@@ -20,22 +20,7 @@ pub(crate) fn run(
     let located = |e| format!("{}: {e}", path.display());
     let deck = electra_circuit::parse_ac(&text).map_err(located)?;
     drop(text);
-    let mut matrix = BTreeMap::<(usize, usize), PhasorSum>::new();
-    let mut rhs = vec![PhasorSum::default(); deck.nodes().len()];
-    deck.stamp(
-        Frequency::from_base(hz),
-        |i, j, y| matrix.entry((i, j)).or_default().add(y.into_base()),
-        |i, b| rhs[i].add(b.into_base()),
-    )
-    .map_err(located)?;
-    if matrix
-        .values()
-        .chain(&rhs)
-        .map(|sum| sum.total())
-        .any(|z| !z.re.is_finite() || !z.im.is_finite())
-    {
-        return Err("AC coefficient accumulation overflow".into());
-    }
+    let system = deck.assemble(Frequency::from_base(hz)).map_err(located)?;
     writeln!(out, "kind,row,column,label,real,imag")?;
     for (i, (name, fixed)) in deck.nodes().iter().zip(deck.boundary()).enumerate() {
         let escaped;
@@ -55,13 +40,11 @@ pub(crate) fn run(
             None => writeln!(out, "free,{i},,\"{name}\",,")?,
         }
     }
-    for ((i, j), sum) in matrix {
-        let y = sum.total();
-        if y != Complex64::default() {
-            writeln!(out, "Y,{i},{j},,{},{}", y.re, y.im)?;
-        }
+    for (i, j, y) in system.coefficients() {
+        let y = y.into_base();
+        writeln!(out, "Y,{i},{j},,{},{}", y.re, y.im)?;
     }
-    for (i, b) in rhs.into_iter().map(PhasorSum::total).enumerate() {
+    for (i, b) in system.currents().map(|b| b.into_base()).enumerate() {
         if b != Complex64::default() {
             writeln!(out, "rhs,{i},,,{},{}", b.re, b.im)?;
         }

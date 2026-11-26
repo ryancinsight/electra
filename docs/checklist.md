@@ -35,7 +35,8 @@ Use the checkboxes for evidence state. The [design evidence](design-evidence.md)
 
 - [x] Stamp typed passive R/C/L branches on arbitrary node pairs using shared boundary elimination. Recover both independent bridge equations with complex drive and reversed endpoints. [API, range checks and assembly measurements](passive-ac-stamps.md)
 - [x] Parse flat R/C/L decks with grounded phasor sources and export the assembled sparse equations. Verify both exported rows against an independent complex bridge solution. [Deck qualification](passive-ac-stamps.md#flat-ac-netlists)
-- [ ] Solve a parsed AC deck with a general complex solver. Verify solved voltages and KCL against the headless ladder and independent bridge solution.
+- [x] Partition the frequency-specific reduced system into independent components and reuse the bounded solver for decks above 128 total free nodes. [Qualification](ac-direct.md#independent-channels)
+- [x] Solve a parsed passive AC deck with the bounded Leto backend. Verify solved voltages and KCL against the headless ladder and independent bridge solution. [Solver and qualification](ac-direct.md)
 
 - [x] Specify the Iris visual contract for Bode and PSD data. A 1 kHz cursor reads 1,000 Hz from the headless samples. Reject a current trace bound to a voltage axis; distinguish V²/Hz from V/√Hz and absolute dB references from dimensionless gain. [Typed conversion and cursor qualification](rc-frequency-response.md#spectral-readback-contract)
 

@@ -10,6 +10,7 @@
 //! assert!((tap.into_base() - 6.).abs() < 1e-12);
 //! ```
 #![forbid(unsafe_code)]
+pub mod ac;
 use electra_circuit::{
     MnaError,
     direct::{DirectFactor, Matrix},
@@ -32,12 +33,21 @@ impl DirectFactor for PivotedLu {
         }
         let mut values = vec![0.; n * n];
         matrix.for_each_entry(|row, column, value| values[row * n + column] += value);
+        Self::from_values(n, values)
+    }
+    fn solve_into(&mut self, rhs: &[f64], solution: &mut [f64]) -> Result<(), MnaError> {
+        self.solve(rhs, solution)
+    }
+}
+
+impl PivotedLu {
+    fn from_values(n: usize, values: Vec<f64>) -> Result<Self, MnaError> {
         let input = Array2::from_shape_vec([n, n], values).map_err(provider_error)?;
         lu_decompose(&input.view())
             .map(Self)
             .map_err(provider_error)
     }
-    fn solve_into(&mut self, rhs: &[f64], solution: &mut [f64]) -> Result<(), MnaError> {
+    fn solve(&self, rhs: &[f64], solution: &mut [f64]) -> Result<(), MnaError> {
         let layout = Layout::c_contiguous([rhs.len()]).map_err(provider_error)?;
         let rhs = ArrayView1::try_new(layout, rhs).map_err(provider_error)?;
         let mut out = ArrayViewMut1::try_new(layout, solution).map_err(provider_error)?;
