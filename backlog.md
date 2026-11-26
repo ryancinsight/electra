@@ -44,7 +44,7 @@ The release sequence below defines the v1 product scope. Each item has a depende
 
 - priority: correctness
 - needs: 0.2, 0.3
-- Implemented typed, allocation-free series RC and RL backward Euler steps under piecewise-constant voltage drive. The caller supplies the initial state and step duration. Adaptive control, coupled RLC, event handling and restart remain open.
+- Implemented typed, allocation-free series RC and RL backward Euler steps under piecewise-constant voltage drive. The caller supplies the initial state and step duration. The series RLC model advances capacitor voltage and inductor current together using an allocation-free implicit midpoint step. Adaptive control, event handling and restart remain open.
 - Deliverable: Add charge/flux state, initial conditions, pulse/PWL/sine sources, switch events, adaptive implicit integration, local error estimates, timestep rejection and restart. Qualify Horae’s DAE/event coverage or extend it there. Add time-domain RLC and line models with explicit units.
 - Exit: RC/RL steps and RLC ringdown converge under timestep refinement. Charge and energy errors are bounded across discontinuities.
 - Apply the mixed-signal research baseline to timestep rejection, discontinuities and event ordering. Track accuracy alongside convergence failures and runtime.

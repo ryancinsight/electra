@@ -9,11 +9,8 @@ pub(super) fn positive(value: f64) -> Result<(), StepError> {
 }
 
 pub(super) fn advance(state: f64, target: f64, tau: Time, dt: Time) -> Result<f64, StepError> {
-    let dt = dt.into_base();
+    let dt = interval(dt)?;
     let tau = tau.into_base();
-    if !dt.is_finite() || dt < 0. {
-        return Err(StepError::Interval);
-    }
     if !state.is_finite() || !target.is_finite() {
         return Err(StepError::State);
     }
@@ -30,4 +27,12 @@ pub(super) fn advance(state: f64, target: f64, tau: Time, dt: Time) -> Result<f6
     } else {
         Err(StepError::State)
     }
+}
+
+pub(super) fn interval(dt: Time) -> Result<f64, StepError> {
+    let dt = dt.into_base();
+    if !dt.is_finite() || dt < 0. {
+        return Err(StepError::Interval);
+    }
+    Ok(dt)
 }

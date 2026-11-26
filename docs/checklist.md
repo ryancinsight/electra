@@ -54,7 +54,7 @@ Use the checkboxes for evidence state. The [design evidence](design-evidence.md)
 - [ ] Under the mixed-signal research fixture, restart at a switch event, count lost/duplicated events and record waveform error, converged/failed steps, memory and time under identical tolerances.
 
 - [x] A zero-state RC step reaches 1−e⁻¹ of its final voltage at one time constant within 0.2%. Repeat for RL current. The typed backward Euler models pass at 256 equal steps per time constant and show first-order convergence at 64, 128 and 256 steps.
-- [ ] Check underdamped RLC period and logarithmic decrement within 0.5%.
+- [x] Check underdamped RLC period and logarithmic decrement within 0.5%. For a 2 Ω, 0.1 H, 1 mF series branch released from 1 V and zero current, successive positive voltage peaks give 0.00494% period error and 0.01395% logarithmic decrement error at 0.25 ms. Halving the step twice from 1 ms reduced period error about fourfold per refinement. [Executable fixture](../crates/electra-circuit/tests/rlc_ringdown.rs)
 - [ ] Refine the maximum timestep twice with fixed error controls. Record observed order against the chosen method on smooth intervals; bound source-event timing by the event tolerance and compare state before and after rejected steps.
 - [ ] Bound integrated KCL and stored/dissipated energy error to 0.2% of supplied charge/energy on the specified nonzero-energy fixture. Reopen a checkpoint and compare the waveform sample by sample.
 
