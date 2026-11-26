@@ -1,10 +1,11 @@
 //! Partial row pivoting on a breadth-first ordered complex band.
 use super::{Complex64, ElectricPotential, Row};
 use crate::ac::scaling::quotient;
-use std::{collections::BTreeMap, error::Error};
+mod storage;
+use std::error::Error;
+use storage::Matrix;
 
 const MAX_HALF_BAND: usize = 32;
-type Entries = BTreeMap<usize, Complex64>;
 
 pub(super) fn solve(
     rows: &[Option<Row>],
@@ -31,17 +32,14 @@ pub(super) fn solve(
             format!("irreducible AC core half-bandwidth {width} exceeds {MAX_HALF_BAND}").into(),
         );
     }
-    let mut matrix = Vec::with_capacity(nodes.len());
+    let mut matrix = Matrix::new(nodes.len(), width);
     let mut rhs = Vec::with_capacity(nodes.len());
     for (i, &node) in nodes.iter().enumerate() {
         let row = rows[node].as_ref().unwrap();
-        let mut entries: Entries = row
-            .edges
-            .iter()
-            .map(|(&j, value)| (slots[j], value.total()))
-            .collect();
-        entries.insert(i, row.diagonal.total());
-        matrix.push(entries);
+        for (&j, value) in &row.edges {
+            matrix[(i, slots[j])] = value.total();
+        }
+        matrix[(i, i)] = row.diagonal.total();
         rhs.push(row.rhs.total());
     }
     eliminate(&mut matrix, &mut rhs, width)?;
@@ -52,16 +50,15 @@ pub(super) fn solve(
 }
 
 fn eliminate(
-    matrix: &mut [Entries],
+    matrix: &mut Matrix,
     rhs: &mut [Complex64],
     width: usize,
 ) -> Result<(), Box<dyn Error>> {
-    for k in 0..matrix.len() {
-        let end = (k + width + 1).min(matrix.len());
+    for k in 0..rhs.len() {
+        let end = (k + width + 1).min(rhs.len());
         let magnitude = |row: usize| {
-            matrix[row]
-                .get(&k)
-                .map_or(0., |z| z.re.abs().max(z.im.abs()))
+            let z = matrix[(row, k)];
+            z.re.abs().max(z.im.abs())
         };
         let pivot = (k..end)
             .max_by(|&i, &j| magnitude(i).total_cmp(&magnitude(j)))
@@ -69,33 +66,30 @@ fn eliminate(
         if magnitude(pivot) == 0. {
             return Err("singular AC band pivot".into());
         }
-        matrix.swap(k, pivot);
+        let upper = (k + 2 * width + 1).min(rhs.len());
+        matrix.swap_active(k, pivot, upper);
         rhs.swap(k, pivot);
-        let (done, active) = matrix[..end].split_at_mut(k + 1);
-        let pivot_row = &done[k];
         let pivot_rhs = rhs[k];
-        for (i, row) in active.iter_mut().enumerate() {
-            let Some(value) = row.remove(&k) else {
-                continue;
-            };
+        for j in k + 1..end {
+            let value = matrix[(j, k)];
             if value == Complex64::default() {
                 continue;
             }
-            let factor = quotient(value, pivot_row[&k])?;
-            for (&column, &coefficient) in pivot_row.range(k + 1..) {
-                let entry = row.entry(column).or_default();
-                *entry -= factor * coefficient;
+            let factor = quotient(value, matrix[(k, k)])?;
+            for column in k + 1..upper {
+                let coefficient = matrix[(k, column)];
+                matrix[(j, column)] -= factor * coefficient;
             }
-            let j = k + i + 1;
             rhs[j] -= factor * pivot_rhs;
         }
     }
-    for k in (0..matrix.len()).rev() {
+    for k in (0..rhs.len()).rev() {
         let mut value = rhs[k];
-        for (&j, &entry) in matrix[k].range(k + 1..) {
+        for j in k + 1..(k + 2 * width + 1).min(rhs.len()) {
+            let entry = matrix[(k, j)];
             value -= entry * rhs[j];
         }
-        rhs[k] = quotient(value, matrix[k][&k])?;
+        rhs[k] = quotient(value, matrix[(k, k)])?;
     }
     Ok(())
 }
@@ -105,18 +99,48 @@ mod tests {
     use super::*;
 
     #[test]
+    fn successive_pivots_at_the_lower_band_edge_recover_complex_solution() {
+        let n = 31;
+        let width = 3;
+        let mut matrix = Matrix::new(n, width);
+        let expected: Vec<_> = (0..n)
+            .map(|i| Complex64::new(i as f64 - 4., 2. - i as f64))
+            .collect();
+        let mut rhs = vec![Complex64::default(); n];
+        for i in 0..n {
+            for j in i.saturating_sub(width)..(i + width + 1).min(n) {
+                let value = if i == j + width || (i < width && j == i + width) {
+                    Complex64::new(3., 1.)
+                } else if i == j {
+                    Complex64::new(1., -0.5)
+                } else {
+                    Complex64::new(0.125, 0.)
+                };
+                matrix[(i, j)] = value;
+                rhs[i] += value * expected[j];
+            }
+        }
+        eliminate(&mut matrix, &mut rhs, width).unwrap();
+        for (actual, reference) in rhs.iter().zip(expected) {
+            assert!(
+                (actual.re - reference.re).abs() < 1e-8 && (actual.im - reference.im).abs() < 1e-8
+            );
+        }
+    }
+
+    #[test]
     fn zero_diagonal_row_swap_preserves_second_superdiagonal_fill() {
-        let row = |values: &[(usize, f64)]| {
-            values
-                .iter()
-                .map(|&(i, v)| (i, Complex64::from(v)))
-                .collect()
-        };
-        let mut matrix = [
-            row(&[(1, 1.)]),
-            row(&[(0, 2.), (1, 1.), (2, 3.)]),
-            row(&[(1, 1.), (2, 2.)]),
-        ];
+        let mut matrix = Matrix::new(3, 1);
+        for (i, j, value) in [
+            (0, 1, 1.),
+            (1, 0, 2.),
+            (1, 1, 1.),
+            (1, 2, 3.),
+            (2, 1, 1.),
+            (2, 2, 2.),
+        ] {
+            matrix[(i, j)] = Complex64::from(value);
+        }
         let mut rhs = [2., 13., 8.].map(Complex64::from);
         eliminate(&mut matrix, &mut rhs, 1).unwrap();
         assert_eq!(rhs, [1., 2., 3.].map(Complex64::from));
