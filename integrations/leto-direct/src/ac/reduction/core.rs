@@ -10,26 +10,49 @@ pub(super) fn solve(
     volts: &mut [ElectricPotential<Complex64>],
     limit: usize,
 ) -> Result<(), Box<dyn Error>> {
-    let count = rows.iter().flatten().count();
-    if count > limit {
-        return Err(
-            format!("irreducible AC core of {count} nodes exceeds pivoted limit {limit}").into(),
-        );
+    let mut slots = vec![usize::MAX; rows.len()];
+    let mut nodes = Vec::new();
+    for start in 0..rows.len() {
+        if rows[start].is_none() || slots[start] != usize::MAX {
+            continue;
+        }
+        nodes.clear();
+        nodes.push(start);
+        slots[start] = 0;
+        let mut cursor = 0;
+        while cursor < nodes.len() {
+            let node = nodes[cursor];
+            for &next in rows[node].as_ref().unwrap().edges.keys() {
+                if slots[next] == usize::MAX {
+                    if nodes.len() == limit {
+                        return Err(
+                            format!("irreducible AC core exceeds pivoted limit {limit}").into()
+                        );
+                    }
+                    slots[next] = nodes.len();
+                    nodes.push(next);
+                }
+            }
+            cursor += 1;
+        }
+        solve_block(rows, free, volts, &slots, &nodes)?;
     }
-    let mut slots = vec![0; rows.len()];
-    for (i, (node, _)) in rows
-        .iter()
-        .enumerate()
-        .filter(|(_, row)| row.is_some())
-        .enumerate()
-    {
-        slots[node] = i;
-    }
+    Ok(())
+}
+
+fn solve_block(
+    rows: &[Option<Row>],
+    free: &[usize],
+    volts: &mut [ElectricPotential<Complex64>],
+    slots: &[usize],
+    nodes: &[usize],
+) -> Result<(), Box<dyn Error>> {
+    let count = nodes.len();
     let order = count * 2;
     let mut matrix = vec![0.; order * order];
     let mut rhs = vec![0.; order];
-    for (node, row) in rows.iter().enumerate() {
-        let Some(row) = row else { continue };
+    for &node in nodes {
+        let row = rows[node].as_ref().unwrap();
         let i = slots[node];
         let d = row.diagonal.total();
         block::put(&mut matrix, order, i, i, d.re, d.im);
@@ -43,14 +66,12 @@ pub(super) fn solve(
     }
     let mut x = vec![0.; order];
     PivotedLu::from_values(order, matrix)?.solve(&rhs, &mut x)?;
-    for (node, row) in rows.iter().enumerate() {
-        if row.is_some() {
-            let i = 2 * slots[node];
-            if !x[i].is_finite() || !x[i + 1].is_finite() {
-                return Err("nonfinite AC core solution".into());
-            }
-            volts[free[node]] = ElectricPotential::from_base(Complex64::new(x[i], x[i + 1]));
+    for &node in nodes {
+        let i = 2 * slots[node];
+        if !x[i].is_finite() || !x[i + 1].is_finite() {
+            return Err("nonfinite AC core solution".into());
         }
+        volts[free[node]] = ElectricPotential::from_base(Complex64::new(x[i], x[i + 1]));
     }
     Ok(())
 }

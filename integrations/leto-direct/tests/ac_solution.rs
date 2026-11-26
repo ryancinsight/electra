@@ -276,3 +276,30 @@ fn series_reduction_preserves_a_multicycle_pivoted_core() {
         near(v.into_base(), expected);
     }
 }
+
+#[test]
+fn resonant_articulation_separates_forty_pivoted_cores() {
+    let mut text = String::from(
+        "V1 drive 0 AC 1
+Ch hub leaf 1
+Lh leaf 0 1
+",
+    );
+    for group in 0..40 {
+        text.push_str(&format!(
+            "Ra{group} drive n{group}_0 1\nRb{group} hub n{group}_0 1\n"
+        ));
+        for i in 0..4 {
+            for j in i + 1..4 {
+                text.push_str(&format!("R{group}_{i}_{j} n{group}_{i} n{group}_{j} 1\n"));
+            }
+        }
+    }
+    let deck = parse_ac(&text).unwrap();
+    let result = solve(&deck, Frequency::from_base(TAU.recip())).unwrap();
+    for (label, v) in deck.nodes().iter().zip(&result.volts) {
+        if label.starts_with('n') {
+            near(v.into_base(), Complex64::from(0.5));
+        }
+    }
+}
