@@ -3,7 +3,9 @@ use electra_ac::{
     Capacitance, ElectricConductance, ElectricPotential, ElectricalImpedance, Frequency, LogSweep,
     RcLadder, Stage,
 };
-use electra_iris_ac::{RcOutputError, probe::ProbeTable, rc_output_rms};
+use electra_iris_ac::{
+    RcOutputError, ShuntTerminal, probe::ProbeTable, rc_output_rms, rc_shunt_current_real,
+};
 use electra_schematic::{NetId, Pin, PinId, Role, Schematic};
 use std::{collections::BTreeMap, process::Command};
 
@@ -57,6 +59,8 @@ fn reopened_voltage_probe_matches_every_rc_cli_sample() {
         rc_output_rms(model, &grid, ElectricPotential::from_base(-1.)),
         Err(RcOutputError::Source)
     );
+    let current = rc_shunt_current_real(model, &grid, source, ShuntTerminal::Output).unwrap();
+    let ground = rc_shunt_current_real(model, &grid, source, ShuntTerminal::Ground).unwrap();
     let net = NetId(17);
     let pin = PinId {
         instance: 4,
@@ -78,7 +82,7 @@ fn reopened_voltage_probe_matches_every_rc_cli_sample() {
     let table = ProbeTable {
         frequencies: &grid,
         voltages: BTreeMap::from([(net, voltage.as_slice())]),
-        currents: BTreeMap::new(),
+        currents: BTreeMap::from([(pin, current.as_slice())]),
     };
     let view = table
         .select(&reopened, pin)
@@ -93,9 +97,20 @@ fn reopened_voltage_probe_matches_every_rc_cli_sample() {
     let headers: Vec<_> = rows.next().unwrap().split(',').collect();
     let column = |name| headers.iter().position(|s| *s == name).unwrap();
     let hz = column("frequency_Hz");
+    let current_view = table
+        .select(&reopened, pin)
+        .unwrap()
+        .unwrap()
+        .current
+        .unwrap();
+    assert!(std::ptr::eq(current_view.samples(), current.as_slice()));
+    let real = column("gain_re");
     let gain = column("gain_magnitude");
-    for (f, v) in view.iter() {
+    for (index, (f, v)) in view.iter().enumerate() {
         let row: Vec<_> = rows.next().unwrap().split(',').collect();
+        let expected = 2.5 * row[real].parse::<f64>().unwrap() * 0.002;
+        assert_eq!(current_view.samples()[index].into_base(), expected);
+        assert_eq!(ground[index].into_base(), -expected);
         assert_eq!(f.into_base(), row[hz].parse::<f64>().unwrap());
         assert_eq!(
             v.into_base(),

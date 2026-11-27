@@ -20,6 +20,11 @@ impl<'a> RcLadder<'a> {
         }
     }
 
+    /// Conductance of the final resistive shunt, excluding its parallel capacitor.
+    pub fn output_conductance(self) -> crate::ElectricConductance {
+        self.0.last().expect("nonempty validated ladder").load
+    }
+
     /// Compute the final node's complex gain and Thévenin impedance at one frequency.
     /// The phasor convention is exp(+jωt). Zero hertz gives the DC limit.
     pub fn at(self, frequency: Frequency) -> Result<AcPoint, AcError> {

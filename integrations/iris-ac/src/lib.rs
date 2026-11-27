@@ -2,7 +2,7 @@
 mod noise;
 pub mod probe;
 mod rc_output;
-pub use rc_output::{RcOutputError, rc_output_rms};
+pub use rc_output::{RcOutputError, ShuntTerminal, rc_output_rms, rc_shunt_current_real};
 pub mod readback;
 mod voltage;
 use electra_ac::{Angle, Dimensionless, Frequency};
