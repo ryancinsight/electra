@@ -1,6 +1,6 @@
 # Electrical design evidence for v1
 
-Reviewed 2026-11-24. The [backlog](../backlog.md) assigns implementation to releases. The [checklist](checklist.md) defines the tests. Vendor documentation establishes reference workflows. Published research provides hypotheses and independent test designs. Neither establishes Electra capability until its fixture passes.
+Reviewed through 2026-11-27. The [backlog](../backlog.md) assigns implementation to releases. The [checklist](checklist.md) defines the tests. Vendor documentation establishes reference workflows. Published research provides hypotheses and independent test designs. Neither establishes Electra capability until its fixture passes.
 
 ## Reference workflows
 
@@ -34,3 +34,7 @@ The initial scan covered work dated 2025 through 2026-11-24. Product sources wer
 At each minor release and before the 1.0 RC, search from the previous review date through the new cutoff. Search IEEE TCAD, TEMC and TPEL, DAC, ICCAD, DATE, relevant circuit- and board-design journals, and arXiv. Cover circuit/DAE solvers, compact and behavioral models, mixed-signal timing, optimization, routing, SI/PI, thermal coupling, visualization and fabrication verification. Include relevant negative results and non-ML methods. Record date window, search terms, DOI or stable URL, peer-review status, dataset/model availability and the tested operating regime.
 
 For each relevant result, assign an owner, comparison baseline, metric, limitation and adopt/experiment/defer decision. Link a release gate before promoting an experiment. A speedup, accuracy figure or manufacturing result transfers to Electra only after an independent replay. The register is a dated, scoped review; new evidence remains eligible at every release.
+
+### 0.6 evidence refresh
+
+The November 25–27, 2026 incremental search covered IEEE Xplore, ACM and arXiv using schematic simulation, DAE, SPICE, behavioral and mixed-signal models, probing, routing optimization, SI/PI, electrothermal analysis and fabrication verification. No newly dated result screened in this window supplied a new acceptance fixture. The prior eSim, EasyEDA and DipTrace workflow comparisons remain the basis for the two-sheet qualification. It exercises a Windows host, the independent KiCad 9.0.2 property round-trip and a resistive DC project. The [milestone checklist](checklist.md#v06) links the executable evidence.

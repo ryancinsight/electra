@@ -1,6 +1,6 @@
 [package]
 name = "electra-iris-ac"
-version = "0.5.15"
+version = "0.6.0"
 edition = "2024"
 rust-version = "1.95"
 license = "MIT"
@@ -12,7 +12,7 @@ resolver = "3"
 [dependencies]
 electra-ac = { path = "../../crates/electra-ac" }
 electra-schematic = { path = "../../crates/electra-schematic" }
-iris = { package = "iris-viz", version = "=0.1.4", default-features = false }
+iris = { package = "iris-viz", git = "https://github.com/ryancinsight/iris.git", rev = "7f378a654cb06fa22e4863e97db26b8f57d238c3", default-features = false }
 
 [lints.rust]
 missing_docs = "deny"

@@ -16,6 +16,12 @@ fn placed_models_share_definitions_and_reopen_in_terminal_order() {
     }
     block.bind_model(1, "device/μ".into(), vec![2, 1]).unwrap();
     assert!(block.bind_model(1, "bad".into(), vec![1, 1]).is_err());
+    let mut legacy = Vec::new();
+    block.write_connectivity(&mut legacy).unwrap();
+    assert_eq!(legacy[4], 3);
+    let old = Schematic::read_connectivity(legacy.as_slice()).unwrap();
+    assert_eq!(old.model(1).unwrap().pins(), [2, 1]);
+    assert_eq!(old.sheet_of(1), None);
     let mut project = Schematic::default();
     for id in [8, 9] {
         project
@@ -33,7 +39,7 @@ fn placed_models_share_definitions_and_reopen_in_terminal_order() {
     ));
     let mut data = Vec::new();
     project.write_connectivity(&mut data).unwrap();
-    assert_eq!(data[4], 3);
+    assert_eq!(data[4], 4);
     for end in 0..data.len() {
         assert!(Schematic::read_connectivity(&data[..end]).is_err());
     }

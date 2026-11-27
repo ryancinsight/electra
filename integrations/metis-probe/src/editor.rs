@@ -1,7 +1,7 @@
 //! Reversible edits on the selected occurrence. History owns only prior values.
 use crate::PinList;
 use electra_schematic::{ModelBinding, NetId, PinId, Schematic};
-use metis_core::input::{Accelerator, Key, Modifiers};
+use metis_core::input::{Accelerator, HistoryAction, Modifiers};
 use std::sync::Arc;
 
 /// Reason a selected edit could not be committed.
@@ -17,6 +17,7 @@ pub enum EditError {
 
 enum Change {
     Wire(PinId, Option<NetId>),
+    Bus(String, Option<Vec<NetId>>),
     Label(NetId, Option<String>),
     Model(u64, Option<Arc<ModelBinding>>),
 }
@@ -26,6 +27,15 @@ impl Change {
             Self::Wire(id, net) => {
                 let pin = model.pin_mut(id).ok_or(EditError::NoPin)?;
                 Self::Wire(id, std::mem::replace(&mut pin.net, net))
+            }
+            Self::Bus(name, lanes) => {
+                let old = match lanes {
+                    Some(lanes) => model
+                        .set_bus(name.clone(), lanes)
+                        .map_err(EditError::Invalid)?,
+                    None => model.remove_bus(&name),
+                };
+                Self::Bus(name, old)
             }
             Self::Label(net, label) => Self::Label(
                 net,
@@ -74,6 +84,10 @@ impl<'a> PinEditor<'a> {
         let id = list.selected().ok_or(EditError::NoPin)?;
         self.commit(Change::Wire(id, net))
     }
+    /// Define an ordered logical bus, preserving the previous lanes for undo.
+    pub fn set_bus(&mut self, name: String, lanes: Vec<NetId>) -> Result<(), EditError> {
+        self.commit(Change::Bus(name, Some(lanes)))
+    }
     /// Set or remove the focused net's display label.
     pub fn label(&mut self, list: &PinList<'_>, text: Option<String>) -> Result<(), EditError> {
         let id = list.selected().ok_or(EditError::NoPin)?;
@@ -98,16 +112,10 @@ impl<'a> PinEditor<'a> {
     /// Handle the host primary Z (undo) or primary Shift Z (redo) accelerator.
     /// Returns true when an edit was replayed.
     pub fn shortcut(&mut self, key: Accelerator) -> bool {
-        if !matches!(key.key(),Key::Letter(letter) if letter.byte()==b'Z') {
-            return false;
-        }
-        let primary = Modifiers::host_primary();
-        let (from, to) = if key.modifiers() == primary {
-            (&mut self.undo, &mut self.redo)
-        } else if key.modifiers() == primary.union(Modifiers::SHIFT) {
-            (&mut self.redo, &mut self.undo)
-        } else {
-            return false;
+        let (from, to) = match HistoryAction::from_accelerator(key, Modifiers::host_primary()) {
+            Some(HistoryAction::Undo) => (&mut self.undo, &mut self.redo),
+            Some(HistoryAction::Redo) => (&mut self.redo, &mut self.undo),
+            None => return false,
         };
         let Some(change) = from.pop() else {
             return false;

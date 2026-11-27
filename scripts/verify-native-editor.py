@@ -61,6 +61,7 @@ def replay(editor, cli):
 
             command("place A")
             command("place B")
+            command("bus taps 4 2")
             click(6)
             command("wire 1")
             click(4)
@@ -84,7 +85,12 @@ def replay(editor, cli):
             command("save")
             assert path.read_bytes() == edited
             command("open")
+            command("save")
+            assert path.read_bytes() == edited
             click(4)
+            assert command("inspect", "sheet") == "sheet A part 3 pin 1 model R2k [1, 2]"
+            assert command("lanes taps", "lanes") == "lanes 4 2"
+            assert command("junction 2", "pins") == "pins 2.2 3.1"
             command("export")
             samples = [command(cmd, "A/TAP drive=") for cmd in ("simulate", "cursor 1", "cursor 2")]
             out = subprocess.check_output([cli, "dc", path.with_suffix(".cir")], text=True)

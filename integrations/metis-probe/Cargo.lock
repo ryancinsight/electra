@@ -508,7 +508,7 @@ dependencies = [
 
 [[package]]
 name = "electra-ac"
-version = "0.5.15"
+version = "0.6.0"
 dependencies = [
  "aequitas",
  "electra-network",
@@ -517,7 +517,7 @@ dependencies = [
 
 [[package]]
 name = "electra-circuit"
-version = "0.5.15"
+version = "0.6.0"
 dependencies = [
  "aequitas",
  "athena-core",
@@ -527,7 +527,7 @@ dependencies = [
 
 [[package]]
 name = "electra-iris-ac"
-version = "0.5.15"
+version = "0.6.0"
 dependencies = [
  "electra-ac",
  "electra-schematic",
@@ -536,7 +536,7 @@ dependencies = [
 
 [[package]]
 name = "electra-metis-probe"
-version = "0.5.15"
+version = "0.6.0"
 dependencies = [
  "electra-ac",
  "electra-circuit",
@@ -549,14 +549,14 @@ dependencies = [
 
 [[package]]
 name = "electra-network"
-version = "0.5.15"
+version = "0.6.0"
 dependencies = [
  "aequitas",
 ]
 
 [[package]]
 name = "electra-schematic"
-version = "0.5.15"
+version = "0.6.0"
 
 [[package]]
 name = "elliptic-curve"
@@ -989,8 +989,7 @@ dependencies = [
 [[package]]
 name = "iris-viz"
 version = "0.1.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "da27a501d3867d51bd062c239002d39f5fdb5f43b6840b1dae88cebfdfecebe1"
+source = "git+https://github.com/ryancinsight/iris.git?rev=7f378a654cb06fa22e4863e97db26b8f57d238c3#7f378a654cb06fa22e4863e97db26b8f57d238c3"
 
 [[package]]
 name = "itoa"
@@ -1069,7 +1068,7 @@ checksum = "cf8baf1c55e62ffcace7a9f06f4bd9cd3f0c4beb022d3b367256b91b87513d98"
 [[package]]
 name = "metis-core"
 version = "0.5.0"
-source = "git+https://github.com/ryancinsight/metis.git?rev=bbf6ffc97bad334c6b63eac4d71b0b5e12d29323#bbf6ffc97bad334c6b63eac4d71b0b5e12d29323"
+source = "git+https://github.com/ryancinsight/metis.git?rev=b20399c1a2888b5c404ac05d8dd9851fe4412d7e#b20399c1a2888b5c404ac05d8dd9851fe4412d7e"
 dependencies = [
  "moirai-crypto",
 ]
@@ -1077,7 +1076,7 @@ dependencies = [
 [[package]]
 name = "metis-platform"
 version = "0.5.0"
-source = "git+https://github.com/ryancinsight/metis.git?rev=bbf6ffc97bad334c6b63eac4d71b0b5e12d29323#bbf6ffc97bad334c6b63eac4d71b0b5e12d29323"
+source = "git+https://github.com/ryancinsight/metis.git?rev=b20399c1a2888b5c404ac05d8dd9851fe4412d7e#b20399c1a2888b5c404ac05d8dd9851fe4412d7e"
 dependencies = [
  "eunomia",
  "hermes-simd",

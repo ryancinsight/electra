@@ -19,6 +19,8 @@ jobs:
         run: rustup toolchain install 1.97.0 --profile minimal
       - name: Build native editor
         run: cargo +1.97.0 build --locked --manifest-path integrations/metis-probe/Cargo.toml --bin electra-editor
+      - name: Verify Iris curves on the native framebuffer
+        run: cargo +1.97.0 test --locked --manifest-path integrations/metis-probe/Cargo.toml --bin electra-editor
       - name: Build CLI oracle
         run: cargo +1.97.0 build --locked -p electra-circuit --bin electra
       - name: Compare native window readback with CLI

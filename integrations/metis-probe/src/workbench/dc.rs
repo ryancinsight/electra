@@ -1,7 +1,18 @@
 //! Compile supported pin-aware model bindings and probe a real DC sweep.
 use super::*;
 use electra_circuit::{ElectricCurrent, ElectricPotential, SourceValue};
+use iris::view::{Axis, SeriesView};
 use std::fmt::Write;
+
+/// Iris views of the two signed physical quantities on their shared drive axis.
+pub struct DcCurves<'a> {
+    /// Sweep coordinate for both series.
+    pub drive: Axis<'static>,
+    /// Selected net voltage in volts.
+    pub voltage: SeriesView<'a, ElectricPotential, ElectricPotential>,
+    /// Selected terminal current in amperes.
+    pub current: SeriesView<'a, ElectricPotential, ElectricCurrent>,
+}
 
 pub(super) fn part(name: &str) -> Result<(char, f64), String> {
     match name {
@@ -118,22 +129,33 @@ impl Trace {
         }
         Ok(trace)
     }
+    pub(super) fn curves(&self) -> Result<DcCurves<'_>, String> {
+        Ok(DcCurves {
+            drive: Axis::with_unit("drive", "V"),
+            voltage: SeriesView::new(self.label.as_str(), &self.drive, &self.volts)
+                .map_err(|e| e.to_string())?,
+            current: SeriesView::new(self.label.as_str(), &self.drive, &self.amps)
+                .map_err(|e| e.to_string())?,
+        })
+    }
     pub(super) fn cursor(&self, index: usize) -> Result<String, String> {
-        use iris::view::{Axis, SeriesView};
-        let axis = Axis::with_unit("drive", "V");
-        let v = SeriesView::new(self.label.as_str(), &self.drive, &self.volts)
-            .map_err(|e| e.to_string())?;
-        let i = SeriesView::new(self.label.as_str(), &self.drive, &self.amps)
-            .map_err(|e| e.to_string())?;
-        let (x, y) = v.iter().nth(index).ok_or("cursor outside trace")?;
+        let curves = self.curves()?;
+        let (x, y) = curves
+            .voltage
+            .sample_at(index)
+            .ok_or("cursor outside trace")?;
+        let (_, current) = curves
+            .current
+            .sample_at(index)
+            .ok_or("cursor outside trace")?;
         Ok(format!(
             "{} {}={} {} voltage={} V current={} A",
-            v.name(),
-            axis.label(),
+            curves.voltage.name(),
+            curves.drive.label(),
             x.into_base(),
-            axis.unit().unwrap_or(""),
+            curves.drive.unit().unwrap_or(""),
             y.into_base(),
-            i.samples()[index].into_base()
+            current.into_base()
         ))
     }
 }
