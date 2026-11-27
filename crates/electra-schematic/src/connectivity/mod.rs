@@ -1,3 +1,5 @@
+mod edit;
+pub use edit::{Rewire, RewireError};
 mod package;
 pub use package::{PackageFinding, PinMap};
 mod rules;
