@@ -6,6 +6,7 @@ mod analysis;
 mod constraints;
 mod device;
 mod netlist;
+pub mod semiconductor;
 pub mod tolerance;
 pub mod transient;
 use aequitas::systems::si::dimensions;
