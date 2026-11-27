@@ -1,6 +1,8 @@
 //! Borrow Electra frequency-response and voltage-noise samples for Iris.
 mod noise;
 pub mod probe;
+mod rc_output;
+pub use rc_output::{RcOutputError, rc_output_rms};
 pub mod readback;
 mod voltage;
 use electra_ac::{Angle, Dimensionless, Frequency};
