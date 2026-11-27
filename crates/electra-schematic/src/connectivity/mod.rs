@@ -1,3 +1,5 @@
+mod package;
+pub use package::{PackageFinding, PinMap};
 mod rules;
 mod snapshot;
 pub use rules::Diagnostic;
