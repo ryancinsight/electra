@@ -98,7 +98,9 @@ Workspace 0.5.5 preserves net display labels across reopen and resolves placed p
 
 Workspace 0.5.4 adds atomic multi-pin wiring commands with undo and redo. The [reopen fixture](../crates/electra-schematic/tests/rewire.rs) checks byte-identical restoration and rejects stale or missing targets without partial edits.
 
-- [ ] Read/write a pinned KiCad schematic and symbol library. Verify untouched supported fields survive, and unknown fields are preserved or a lossy save is blocked with a diagnostic. Verify import using independently generated fixtures.
+- [x] Read/write a pinned KiCad schematic and symbol library. Verify untouched supported fields survive, and unknown fields are preserved or a lossy save is blocked with a diagnostic. Verify import using independently generated fixtures.
+Workspace 0.5.14 qualifies lossless KiCad 9 property edits. The [independent replay](../scripts/verify-kicad-interchange.py) edits the installed Arduino Nano schematic and regulator symbol library, verifies all bytes outside the value, and reimports both with KiCad CLI 9.0.2.
+
 Workspace 0.5.2 adds versioned native connectivity snapshots that preserve occurrence, pin and net identities and electrical properties. Model bindings, editor state and KiCad interchange remain open.
 
 Workspace 0.5.1 adds occurrence-aware pin connectivity and streaming ERC for required pins and conflicting push-pull drivers. The [rewiring fixture](../crates/electra-schematic/tests/connectivity.rs) verifies exact pin identities and clears both faults after editing.
