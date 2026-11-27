@@ -3,7 +3,7 @@
 [package]
 name = "electra-leto-direct"
 default-run = "qualify"
-version = "0.4.3"
+version = "0.4.4"
 edition = "2024"
 rust-version = "1.95"
 license = "MIT"

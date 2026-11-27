@@ -1,0 +1,15 @@
+Electra ideal silicon junction qualification at nominal temperature
+Vbias a 0 0
+D1 a 0 junction
+.model junction D(IS=1e-12 N=1.5 TNOM=27 RS=0)
+.temp 27
+.options gmin=1e-20 reltol=1e-10 abstol=1e-22 vntol=1e-13
+.control
+save v(a) i(vbias) @d1[gd]
+dc Vbias -0.1 0.7 0.025
+set wr_singlescale
+set numdgt=16
+wrdata diode-iv.dat -i(vbias) @d1[gd]
+quit
+.endc
+.end
