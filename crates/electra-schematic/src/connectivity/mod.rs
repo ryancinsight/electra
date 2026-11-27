@@ -1,5 +1,7 @@
 mod block;
+mod model;
 pub use block::PlacementError;
+pub use model::ModelBinding;
 mod edit;
 pub use edit::{Rewire, RewireError};
 mod package;
@@ -47,6 +49,7 @@ pub struct Pin {
 #[derive(Default)]
 pub struct Schematic {
     pins: BTreeMap<PinId, Pin>,
+    models: BTreeMap<u64, std::sync::Arc<ModelBinding>>,
     labels: BTreeMap<NetId, String>,
 }
 

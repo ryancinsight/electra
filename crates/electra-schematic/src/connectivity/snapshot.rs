@@ -1,7 +1,9 @@
-//! Native connectivity snapshots v1 and v2. All integers are little-endian.
+//! Native connectivity snapshots v1 through v3. All integers are little-endian.
+mod models;
 use super::{NetId, Pin, PinId, Role, Schematic};
 use std::io::{self, Read, Write};
 
+const V3: &[u8; 8] = b"ELCP\x03\0\0\0";
 const V2: &[u8; 8] = b"ELCP\x02\0\0\0";
 const V1: &[u8; 8] = b"ELCP\x01\0\0\0";
 const REQUIRED: u8 = 1;
@@ -22,7 +24,14 @@ impl Schematic {
     /// Write a canonical native snapshot in occurrence and pin order.
     /// Buffer file-backed writers to amortize small writes.
     pub fn write_connectivity(&self, mut output: impl Write) -> io::Result<()> {
-        output.write_all(if self.labels.is_empty() { V1 } else { V2 })?;
+        let version = if !self.models.is_empty() {
+            V3
+        } else if self.labels.is_empty() {
+            V1
+        } else {
+            V2
+        };
+        output.write_all(version)?;
         let count = u64::try_from(self.pins.len()).map_err(|_| invalid("pin count overflow"))?;
         output.write_all(&count.to_le_bytes())?;
         for (id, pin) in &self.pins {
@@ -36,7 +45,7 @@ impl Schematic {
                 output.write_all(&net.0.to_le_bytes())?;
             }
         }
-        if !self.labels.is_empty() {
+        if version != V1 {
             output.write_all(
                 &u64::try_from(self.labels.len())
                     .map_err(|_| invalid("label count overflow"))?
@@ -49,6 +58,9 @@ impl Schematic {
                 output.write_all(label.as_bytes())?;
             }
         }
+        if version == V3 {
+            models::write(self, &mut output)?;
+        }
         Ok(())
     }
 
@@ -56,7 +68,7 @@ impl Schematic {
     /// Reject unsupported versions, unknown flags, duplicate pins and trailing data.
     pub fn read_connectivity(mut input: impl Read) -> io::Result<Self> {
         let header = read_bytes(&mut input)?;
-        if &header != V1 && &header != V2 {
+        if &header != V1 && &header != V2 && &header != V3 {
             return Err(invalid("unsupported connectivity header or version"));
         }
         let count = u64::from_le_bytes(read_bytes(&mut input)?);
@@ -89,7 +101,7 @@ impl Schematic {
                 return Err(invalid("duplicate pin address"));
             }
         }
-        if &header == V2 {
+        if &header != V1 {
             let count = u64::from_le_bytes(read_bytes(&mut input)?);
             for _ in 0..count {
                 let id = NetId(u64::from_le_bytes(read_bytes(&mut input)?));
@@ -101,6 +113,9 @@ impl Schematic {
                     return Err(invalid("duplicate net label record"));
                 }
             }
+        }
+        if &header == V3 {
+            models::read(&mut schematic, &mut input)?;
         }
         match read_bytes::<1>(&mut input) {
             Err(error) if error.kind() == io::ErrorKind::UnexpectedEof => Ok(schematic),
