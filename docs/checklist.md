@@ -90,6 +90,8 @@ Workspace 0.5.3 verifies two placed occurrences against a shared physical pad ma
 - [ ] Qualify Metis input/undo/selection and Iris axis/cursor extensions in their owning repos. Record provider revisions and a native Electra replay with numerical samples equal to the CLI.
 
 - [ ] Create and edit a hierarchical schematic in Metis, wire and label nets, assign pin-aware models, cross-probe and undo. Reopening yields identical canonical connectivity, model bindings and part identities.
+Workspace 0.5.12 persists each component model key and its ordered terminal-to-pin map. Repeated placements share immutable definitions in memory, and unbound projects keep their original snapshot encoding.
+
 Workspace 0.5.5 preserves net display labels across reopen and resolves placed pins to distinct net identities even when labels match. Unlabeled snapshots retain the original v1 encoding.
 
 Workspace 0.5.4 adds atomic multi-pin wiring commands with undo and redo. The [reopen fixture](../crates/electra-schematic/tests/rewire.rs) checks byte-identical restoration and rejects stale or missing targets without partial edits.

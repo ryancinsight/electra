@@ -88,14 +88,24 @@ impl Schematic {
                 },
             );
         }
+        for (id, model) in &block.models {
+            self.models.insert(instances[id], model.clone());
+        }
         for (net, label) in &block.labels {
             self.labels.insert(nets[net], format!("{path}/{label}"));
         }
         Ok(())
     }
 
-    /// Remove one placed terminal and return its properties for repair or undo.
+    /// Remove one placed terminal and return its properties. Removing a model
+    /// terminal also clears its assignment to prevent dangling bindings.
     pub fn remove_pin(&mut self, id: PinId) -> Option<super::Pin> {
+        if self
+            .model(id.instance)
+            .is_some_and(|m| m.pins().contains(&id.pin))
+        {
+            self.models.remove(&id.instance);
+        }
         self.pins.remove(&id)
     }
 }
