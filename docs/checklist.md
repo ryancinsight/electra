@@ -71,7 +71,10 @@ Use the checkboxes for evidence state. The [design evidence](design-evidence.md)
 <a id="v06"></a>
 ## 0.6 · Schematic to simulation
 
-- [ ] Author and inspect two instances of an EasyEDA Pro-style reusable schematic block. Inject a swapped package pin and missing power pin; assert exact offending IDs. Use Metis pointer/keyboard input to select a hierarchical net and query the corresponding labeled Iris current/voltage traces after save/reopen.
+- [x] Author and inspect two instances of an EasyEDA Pro-style reusable schematic block. Inject a swapped package pin and missing power pin; assert exact offending IDs. Use Metis pointer/keyboard input to select a hierarchical net and query the corresponding labeled Iris current/voltage traces after save/reopen.
+
+Workspace 0.5.11 qualifies the [two-channel block replay](../integrations/metis-probe/tests/channel.rs) through Metis input handling and labeled Iris readback. The replay uses native virtual-key decoding and local pointer coordinates in-process. The separate provider and native host replay gate remains open.
+
 Workspace 0.5.10 adds Metis pointer capture and keyboard navigation for placed pin rows. The input adapter borrows the visible pin list and uses the pinned Metis core revision bbf6ffc9 with Rust 1.97.
 
 Workspace 0.5.9 streams paired RC probe values from one ladder solve per frequency. The CLI replay checks the paired results against the individual voltage and current paths. Native selection remains open.

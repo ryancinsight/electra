@@ -1,3 +1,5 @@
+mod block;
+pub use block::PlacementError;
 mod edit;
 pub use edit::{Rewire, RewireError};
 mod package;
