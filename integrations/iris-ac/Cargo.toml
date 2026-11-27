@@ -1,6 +1,6 @@
 [package]
 name = "electra-iris-ac"
-version = "0.5.5"
+version = "0.5.6"
 edition = "2024"
 rust-version = "1.95"
 license = "MIT"
@@ -11,6 +11,7 @@ resolver = "3"
 
 [dependencies]
 electra-ac = { path = "../../crates/electra-ac" }
+electra-schematic = { path = "../../crates/electra-schematic" }
 iris = { package = "iris-viz", version = "=0.1.4", default-features = false }
 
 [lints.rust]
