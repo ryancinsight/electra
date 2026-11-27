@@ -6,7 +6,7 @@ index df6c51f..af1d0a9 100644
  authors = ["Ryan Clanton <ryanclanton@outlook.com>"]
 
  [dependencies]
-+electra-network = "0.1.0"
++electra-network = "0.2.0"
  aequitas = { workspace = true }
  eunomia = { workspace = true }
  thiserror = "1"
