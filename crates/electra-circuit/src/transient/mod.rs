@@ -3,6 +3,7 @@ use crate::{ElectricCurrent, ElectricPotential, ElectricalImpedance};
 pub use aequitas::systems::si::quantities::{Capacitance, Inductance, Time};
 use std::fmt;
 mod driver;
+pub mod power;
 mod schmitt;
 pub use driver::RcDriver;
 pub use schmitt::{LogicTransition, SchmittReceiver};

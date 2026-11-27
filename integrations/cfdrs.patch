@@ -6,7 +6,7 @@ index 26394d2b..addda48b 100644
  default = []
 
  [dependencies]
-+electra-network = "0.4.5"
++electra-network = "0.5.0"
  aequitas = { workspace = true, features = ["serde"] }
  cfd-core.workspace = true
  cfd-math = { path = "../cfd-math" }
