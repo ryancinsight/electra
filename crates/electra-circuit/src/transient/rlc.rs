@@ -1,4 +1,6 @@
 //! Implicit midpoint integration of a voltage-driven series RLC branch.
+mod adaptive;
+pub use adaptive::{AdaptiveOptions, SegmentResult};
 mod checkpoint;
 use super::{
     Capacitance, ElectricCurrent, ElectricPotential, ElectricalImpedance, Inductance, StepError,
