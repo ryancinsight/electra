@@ -1,0 +1,17 @@
+Long-channel four-terminal NMOS, bulk tied to source
+VG g 0 0
+VD d 0 0
+M1 d g 0 0 ideal W=10u L=1u
+.model ideal NMOS(LEVEL=1 VTO=1 KP=100u LAMBDA=0 GAMMA=0 TNOM=27)
+.temp 27
+.options gmin=1e-22 reltol=1e-10 abstol=1e-23
+.control
+save all @m1[gm]
+dc VG 0 3 0.25 VD 0.5 2.5 1
+set wr_singlescale
+set numdgt=16
+let idrain = -i(VD)
+wrdata nmos-transfer.dat v(d) idrain @m1[gm]
+quit
+.endc
+.end

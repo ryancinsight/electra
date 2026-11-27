@@ -1,0 +1,19 @@
+Ideal NPN terminal currents across forward, saturated and reverse bias
+VB b 0 0
+VC c 0 0
+VE e 0 0
+Q1 c b e ideal
+.model ideal NPN(IS=1e-15 BF=100 BR=2 TNOM=27)
+.temp 27
+.options gmin=1e-22 reltol=1e-10 abstol=1e-23 vntol=1e-13
+.control
+dc VB 0.1 0.7 0.05 VC -0.05 0.95 0.25
+set wr_singlescale
+set numdgt=16
+let ic = -i(VC)
+let ib = -i(VB)
+let ie = -i(VE)
+wrdata npn-op.dat v(c) ic ib ie
+quit
+.endc
+.end

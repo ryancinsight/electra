@@ -1,0 +1,16 @@
+Resistively loaded common-source amplifier at 2 V gate bias
+VDD supply 0 5
+RD supply d 2k
+VG g 0 DC 2 AC 1
+M1 d g 0 0 ideal W=10u L=1u
+.model ideal NMOS(LEVEL=1 VTO=1 KP=100u LAMBDA=0 GAMMA=0 TNOM=27)
+.temp 27
+.options gmin=1e-22
+.control
+ac lin 3 100 10000
+set wr_singlescale
+set numdgt=16
+wrdata nmos-gain.dat real(v(d)/v(g)) imag(v(d)/v(g))
+quit
+.endc
+.end
