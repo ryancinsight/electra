@@ -57,6 +57,7 @@ The release sequence below defines the v1 product scope. Each item has a depende
 - needs: 0.3, 0.4
 - Deliverable: Add documented diode, BJT and MOSFET model levels, temperature dependence, bounded behavioral sources, event-driven digital primitives and analog/digital thresholds. Implement Newton damping/continuation, linearization at the operating point, sensitivity, corners and seeded Monte Carlo. Specify supported SPICE model cards and unsupported-card diagnostics.
 - Exit: Rectifier, transistor bias stage, switched converter, logic threshold crossing and seeded tolerance sweep meet independent DC/AC/transient reference envelopes.
+- Implemented typed resistance intervals, four-corner output and constant-storage seeded voltage sampling for an unloaded divider. General netlist tolerance sweeps and sensitivity remain open.
 - Use OrCAD X/PSpice worst-case and Monte Carlo workflows and eSim mixed-signal models as comparison targets. Evaluate ADSPICE-style sensitivity against closed-form and finite-difference oracles before proposing an optimized implementation.
 - [Acceptance checklist](docs/checklist.md#v05)
 

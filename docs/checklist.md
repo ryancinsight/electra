@@ -61,7 +61,7 @@ Use the checkboxes for evidence state. The [design evidence](design-evidence.md)
 <a id="v05"></a>
 ## 0.5 · Active circuits and model coverage
 
-- [ ] Implement the OrCAD X/PSpice-style independent tolerance fixture. Use the four resistor corners for exact extrema. Verify a fixed-seed Monte Carlo histogram with an independent reference and repeat it deterministically.
+- [x] Qualify independent uniform resistor tolerances on a 9 V unloaded divider with upper resistance 950–1,050 Ω and lower resistance 1,900–2,100 Ω. The four corners give extrema 342/59 V and 378/61 V. Two 16,384-draw runs at seed 2026 match the six-bin [exact integer reference](../scripts/verify-divider-histogram.py) at thresholds 5.8, 5.9, 6.0, 6.1 and 6.2 V. [Rust regression](../crates/electra-circuit/tests/divider_tolerance.rs)
 - [ ] Replay an eSim-style digital driver feeding an RC analog load. Compare the first threshold time with the analytical crossing and replay simultaneous events in documented order. Compare candidate adjoint sensitivities to a step-refined central difference and closed-form divider derivatives.
 
 - [ ] Compare diode I–V, BJT operating point, MOSFET transfer and a biased amplifier’s AC gain against redistributable model decks with pinned parameters, temperature and independent reference output. Require maximum 1% relative error above a documented current floor.

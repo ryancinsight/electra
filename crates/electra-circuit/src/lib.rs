@@ -6,6 +6,7 @@ mod analysis;
 mod constraints;
 mod device;
 mod netlist;
+pub mod tolerance;
 pub mod transient;
 use aequitas::systems::si::dimensions;
 pub use aequitas::systems::si::quantities::{
