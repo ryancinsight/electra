@@ -1,0 +1,16 @@
+Electra buck startup qualification
+* Ideal complementary synchronous switch pole, 5 V bus, 40% duty
+Vsw sw 0 PULSE(0 5 0 1n 1n 39.999u 100u)
+L1 sw out 100u IC=0
+C1 out 0 10u IC=0
+R1 out 0 5
+.temp 27
+.options reltol=1e-8 abstol=1e-14
+.tran 0.1u 0.002 0 0.1u UIC
+.control
+run
+meas tran mean_v AVG v(out) from=0.001 to=0.002
+meas tran ripple_v PP v(out) from=0.001 to=0.002
+quit
+.endc
+.end
