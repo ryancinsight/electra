@@ -34,7 +34,7 @@ dependencies = [
 
 [[package]]
 name = "electra-ac"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "aequitas",
  "electra-network",
@@ -43,7 +43,7 @@ dependencies = [
 
 [[package]]
 name = "electra-iris-ac"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "electra-ac",
  "iris-viz",
@@ -51,7 +51,7 @@ dependencies = [
 
 [[package]]
 name = "electra-network"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "aequitas",
 ]
