@@ -37,7 +37,7 @@ fn independently_encoded_record_preserves_identity_and_properties() {
 #[test]
 fn rejects_unknown_version_flags_duplicate_and_trailing_data() {
     let mut bytes = EMPTY.to_vec();
-    bytes[4] = 2;
+    bytes[4] = 3;
     let rejected = |input: &[u8]| {
         assert_eq!(
             Schematic::read_connectivity(input).err().unwrap().kind(),

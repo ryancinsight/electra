@@ -1,8 +1,9 @@
-//! Native connectivity snapshot v1. All integers are little-endian.
+//! Native connectivity snapshots v1 and v2. All integers are little-endian.
 use super::{NetId, Pin, PinId, Role, Schematic};
 use std::io::{self, Read, Write};
 
-const HEADER: &[u8; 8] = b"ELCP\x01\0\0\0";
+const V2: &[u8; 8] = b"ELCP\x02\0\0\0";
+const V1: &[u8; 8] = b"ELCP\x01\0\0\0";
 const REQUIRED: u8 = 1;
 const OUTPUT: u8 = 2;
 const WIRED: u8 = 4;
@@ -21,7 +22,7 @@ impl Schematic {
     /// Write a canonical native snapshot in occurrence and pin order.
     /// Buffer file-backed writers to amortize small writes.
     pub fn write_connectivity(&self, mut output: impl Write) -> io::Result<()> {
-        output.write_all(HEADER)?;
+        output.write_all(if self.labels.is_empty() { V1 } else { V2 })?;
         let count = u64::try_from(self.pins.len()).map_err(|_| invalid("pin count overflow"))?;
         output.write_all(&count.to_le_bytes())?;
         for (id, pin) in &self.pins {
@@ -35,13 +36,27 @@ impl Schematic {
                 output.write_all(&net.0.to_le_bytes())?;
             }
         }
+        if !self.labels.is_empty() {
+            output.write_all(
+                &u64::try_from(self.labels.len())
+                    .map_err(|_| invalid("label count overflow"))?
+                    .to_le_bytes(),
+            )?;
+            for (id, label) in &self.labels {
+                output.write_all(&id.0.to_le_bytes())?;
+                let len = u16::try_from(label.len()).map_err(|_| invalid("label too long"))?;
+                output.write_all(&len.to_le_bytes())?;
+                output.write_all(label.as_bytes())?;
+            }
+        }
         Ok(())
     }
 
     /// Load one complete snapshot from a bounded input stream ending at EOF.
     /// Reject unsupported versions, unknown flags, duplicate pins and trailing data.
     pub fn read_connectivity(mut input: impl Read) -> io::Result<Self> {
-        if &read_bytes(&mut input)? != HEADER {
+        let header = read_bytes(&mut input)?;
+        if &header != V1 && &header != V2 {
             return Err(invalid("unsupported connectivity header or version"));
         }
         let count = u64::from_le_bytes(read_bytes(&mut input)?);
@@ -72,6 +87,19 @@ impl Schematic {
                 },
             ) {
                 return Err(invalid("duplicate pin address"));
+            }
+        }
+        if &header == V2 {
+            let count = u64::from_le_bytes(read_bytes(&mut input)?);
+            for _ in 0..count {
+                let id = NetId(u64::from_le_bytes(read_bytes(&mut input)?));
+                let len = u16::from_le_bytes(read_bytes(&mut input)?);
+                let mut bytes = vec![0; usize::from(len)];
+                input.read_exact(&mut bytes)?;
+                let label = String::from_utf8(bytes).map_err(|_| invalid("invalid label UTF-8"))?;
+                if schematic.set_label(id, label).map_err(invalid)?.is_some() {
+                    return Err(invalid("duplicate net label record"));
+                }
             }
         }
         match read_bytes::<1>(&mut input) {

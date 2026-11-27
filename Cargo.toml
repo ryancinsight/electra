@@ -4,7 +4,7 @@ default-members = ["crates/electra-network", "crates/electra-circuit"]
 resolver = "3"
 
 [workspace.package]
-version = "0.5.4"
+version = "0.5.5"
 edition = "2024"
 rust-version = "1.95"
 license = "MIT"
