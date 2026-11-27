@@ -72,6 +72,8 @@ Use the checkboxes for evidence state. The [design evidence](design-evidence.md)
 ## 0.6 · Schematic to simulation
 
 - [ ] Author and inspect two instances of an EasyEDA Pro-style reusable schematic block. Inject a swapped package pin and missing power pin; assert exact offending IDs. Use Metis pointer/keyboard input to select a hierarchical net and query the corresponding labeled Iris current/voltage traces after save/reopen.
+Workspace 0.5.9 streams paired RC probe values from one ladder solve per frequency. The CLI replay checks the paired results against the individual voltage and current paths. Native selection remains open.
+
 Workspace 0.5.8 extends the RC CLI replay to the in-phase RMS current entering the final resistive shunt. Both terminal signs are checked across 17 frequencies using the CLI complex gain and the fixture conductance. Native Metis input replay remains open.
 
 Workspace 0.5.7 validates a reopened schematic voltage probe against all 17 frequency samples emitted by the RC CLI for a loaded two-stage filter. The [CLI replay](../integrations/iris-ac/tests/rc_cli.rs) applies a 2.5 V RMS drive. Native pointer and keyboard selection and solver-derived terminal-current replay remain open.
