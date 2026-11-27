@@ -2,6 +2,7 @@ mod edit;
 pub use edit::{Rewire, RewireError};
 mod package;
 pub use package::{PackageFinding, PinMap};
+mod labels;
 mod rules;
 mod snapshot;
 pub use rules::Diagnostic;
@@ -44,6 +45,7 @@ pub struct Pin {
 #[derive(Default)]
 pub struct Schematic {
     pins: BTreeMap<PinId, Pin>,
+    labels: BTreeMap<NetId, String>,
 }
 
 impl Schematic {
