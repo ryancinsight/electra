@@ -1,4 +1,5 @@
 mod rules;
+mod snapshot;
 pub use rules::Diagnostic;
 use std::collections::{BTreeMap, btree_map::Entry};
 

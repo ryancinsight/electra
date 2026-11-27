@@ -76,6 +76,8 @@ Use the checkboxes for evidence state. The [design evidence](design-evidence.md)
 
 - [ ] Create and edit a hierarchical schematic in Metis, wire and label nets, assign pin-aware models, cross-probe and undo. Reopening yields identical canonical connectivity, model bindings and part identities.
 - [ ] Read/write a pinned KiCad schematic and symbol library. Verify untouched supported fields survive, and unknown fields are preserved or a lossy save is blocked with a diagnostic. Verify import using independently generated fixtures.
+Workspace 0.5.2 adds versioned native connectivity snapshots that preserve occurrence, pin and net identities and electrical properties. Model bindings, editor state and KiCad interchange remain open.
+
 Workspace 0.5.1 adds occurrence-aware pin connectivity and streaming ERC for required pins and conflicting push-pull drivers. The [rewiring fixture](../crates/electra-schematic/tests/connectivity.rs) verifies exact pin identities and clears both faults after editing.
 
 - [ ] On a project containing an unconnected required pin and an output conflict, ERC identifies each. Fix both, simulate through the GUI and CLI, and compare traces at matching sample points.
