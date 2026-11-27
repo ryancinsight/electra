@@ -2,11 +2,12 @@
 //! Hosts pass local pixel coordinates and the key decoded by Metis.
 use electra_schematic::PinId;
 use metis_core::input::{Key, PointerDrag, PointerDragError};
+use std::borrow::Cow;
 
 /// Focus and press capture over a borrowed list of visible pin rows.
 /// Rows begin at local y=0 and have equal positive height.
 pub struct PinList<'a> {
-    rows: &'a [PinId],
+    rows: Cow<'a, [PinId]>,
     width: f64,
     height: f64,
     focus: Option<usize>,
@@ -18,7 +19,7 @@ impl<'a> PinList<'a> {
     pub fn new(rows: &'a [PinId], width: f64, row_height: f64) -> Option<Self> {
         (width.is_finite() && width > 0.0 && row_height.is_finite() && row_height > 0.0).then_some(
             Self {
-                rows,
+                rows: Cow::Borrowed(rows),
                 width,
                 height: row_height,
                 focus: None,
@@ -79,5 +80,19 @@ impl<'a> PinList<'a> {
     /// Return the stable occurrence and pin identity for the focused row.
     pub fn selected(&self) -> Option<PinId> {
         self.focus.map(|i| self.rows[i])
+    }
+}
+
+impl PinList<'_> {
+    /// Install a rebuilt row list after placement or opening a document.
+    pub fn replace_rows(&mut self, rows: Vec<PinId>) {
+        let old = self.selected();
+        self.focus = old.and_then(|id| rows.iter().position(|item| *item == id));
+        self.rows = Cow::Owned(rows);
+        self.cancel_press();
+    }
+    /// Borrow displayed rows in navigation order.
+    pub fn rows(&self) -> &[PinId] {
+        &self.rows
     }
 }

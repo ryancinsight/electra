@@ -117,3 +117,26 @@ impl<'a> PinEditor<'a> {
         true
     }
 }
+
+impl PinEditor<'_> {
+    /// Replace the editing document after a successful file read.
+    pub fn open(&mut self, model: Schematic) {
+        *self.model = model;
+        self.undo.clear();
+        self.redo.clear();
+    }
+
+    /// Place a block as a new editing baseline. A failed placement leaves history intact.
+    pub fn place(
+        &mut self,
+        block: &Schematic,
+        path: &str,
+        instances: &std::collections::BTreeMap<u64, u64>,
+        nets: &std::collections::BTreeMap<NetId, NetId>,
+    ) -> Result<(), electra_schematic::PlacementError> {
+        self.model.place_block(block, path, instances, nets)?;
+        self.undo.clear();
+        self.redo.clear();
+        Ok(())
+    }
+}

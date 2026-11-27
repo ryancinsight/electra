@@ -69,3 +69,14 @@ impl Schematic {
         self.pins.get_mut(&id)
     }
 }
+
+impl Schematic {
+    /// Iterate stable pin identities and properties in occurrence order without copying.
+    pub fn pins(&self) -> impl Iterator<Item = (PinId, &Pin)> {
+        self.pins.iter().map(|(&id, pin)| (id, pin))
+    }
+    /// Iterate named nets, including named ports that have no terminals yet.
+    pub fn labels(&self) -> impl Iterator<Item = (NetId, &str)> {
+        self.labels.iter().map(|(&id, label)| (id, label.as_str()))
+    }
+}

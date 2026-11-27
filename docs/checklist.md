@@ -90,6 +90,8 @@ Workspace 0.5.3 verifies two placed occurrences against a shared physical pad ma
 - [ ] Qualify Metis input/undo/selection and Iris axis/cursor extensions in their owning repos. Record provider revisions and a native Electra replay with numerical samples equal to the CLI.
 
 - [ ] Create and edit a hierarchical schematic in Metis, wire and label nets, assign pin-aware models, cross-probe and undo. Reopening yields identical canonical connectivity, model bindings and part identities.
+Workspace 0.5.15 adds a Windows Metis schematic workbench and compiles placed, pin-aware source and resistor models to the shared DC deck. The platform-independent command replay verifies editing, ERC repair and three CLI-equivalent cursor samples; native execution has a separate Windows replay.
+
 Workspace 0.5.13 adds Metis-selected wiring, net naming and model assignment with host-primary undo/redo. The [editing replay](../integrations/metis-probe/tests/channel.rs) verifies exact restoration, rejected edits, post-reopen part identities and labeled Iris readback. Block authoring in the desktop editor remains open.
 
 Workspace 0.5.12 persists each component model key and its ordered terminal-to-pin map. Repeated placements share immutable definitions in memory, and unbound projects keep their original snapshot encoding.
