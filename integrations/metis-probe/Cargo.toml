@@ -1,6 +1,6 @@
 [package]
 name = "electra-metis-probe"
-version = "0.5.14"
+version = "0.5.15"
 edition = "2024"
 rust-version = "1.97"
 license = "MIT"
@@ -10,12 +10,19 @@ publish = false
 resolver = "3"
 
 [dependencies]
+electra-circuit = {path="../../crates/electra-circuit"}
+iris = {package="iris-viz",version="=0.1.4",default-features=false}
 electra-schematic = { path = "../../crates/electra-schematic" }
 metis-core = { git = "https://github.com/ryancinsight/metis.git", rev = "bbf6ffc97bad334c6b63eac4d71b0b5e12d29323" }
 
-[dev-dependencies]
-electra-iris-ac = { path = "../iris-ac" }
-electra-ac = { path = "../../crates/electra-ac" }
+[target.'cfg(windows)'.dependencies]
+metis-platform = { git = "https://github.com/ryancinsight/metis.git", rev = "bbf6ffc97bad334c6b63eac4d71b0b5e12d29323" }
+
+[dependencies.electra-iris-ac]
+path = "../iris-ac"
+
+[dependencies.electra-ac]
+path = "../../crates/electra-ac"
 
 [lints.rust]
 missing_docs = "deny"

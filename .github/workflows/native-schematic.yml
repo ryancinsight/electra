@@ -1,0 +1,25 @@
+name: Native schematic replay
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'crates/**'
+      - 'integrations/**'
+      - 'scripts/verify-native-editor.py'
+      - '.github/workflows/native-schematic.yml'
+permissions:
+  contents: read
+jobs:
+  replay:
+    runs-on: windows-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install the Metis toolchain
+        run: rustup toolchain install 1.97.0 --profile minimal
+      - name: Build native editor
+        run: cargo +1.97.0 build --locked --manifest-path integrations/metis-probe/Cargo.toml --bin electra-editor
+      - name: Build CLI oracle
+        run: cargo +1.97.0 build --locked -p electra-circuit --bin electra
+      - name: Compare native window readback with CLI
+        run: python scripts/verify-native-editor.py integrations/metis-probe/target/debug/electra-editor.exe target/debug/electra.exe
