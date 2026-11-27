@@ -66,7 +66,7 @@ Use the checkboxes for evidence state. The [design evidence](design-evidence.md)
 
 - [ ] Compare diode I–V, BJT operating point, MOSFET transfer and a biased amplifier’s AC gain against redistributable model decks with pinned parameters, temperature and independent reference output. Require maximum 1% relative error above a documented current floor.
 - [ ] Simulate a rectifier and a switching converter through startup. Check mean output and ripple within 2% of pinned reference over a specified steady-state window. Distinguish timestep exhaustion, singularity and Newton failure in diagnostics.
-- [ ] Qualify a logic-to-analog-to-logic transition with known hysteresis, propagation delay and simultaneous events. Repeat Monte Carlo with the same seed and compare a linear tolerance sweep to its analytical sensitivity.
+- [x] Qualify an RC-driven Schmitt receiver with 1 V and 2 V thresholds and 100 µs inertial delay. Both output edges agree with analytical RC crossing plus delay within 2 µs. Check short-pulse cancellation and delivery before a simultaneous input reversal. Replay 4,096 seeded samples and check the ±1 Ω divider sweep against its −0.002 V/Ω slope within 0.67 µV. [Executable qualification](../crates/electra-circuit/tests/schmitt.rs)
 
 <a id="v06"></a>
 ## 0.6 · Schematic to simulation
