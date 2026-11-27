@@ -1,5 +1,7 @@
 //! Independent uniform resistor tolerances for an unloaded two-resistor divider.
 use crate::{ElectricPotential, ElectricalImpedance};
+mod sensitivity;
+pub use sensitivity::DividerSensitivity;
 mod uniform;
 use uniform::Uniform;
 
