@@ -2,11 +2,13 @@
 mod adaptive;
 pub use adaptive::{AdaptiveOptions, SegmentResult};
 mod checkpoint;
+mod sampled;
 use super::{
     Capacitance, ElectricCurrent, ElectricPotential, ElectricalImpedance, Inductance, StepError,
     Time, step,
 };
 pub use checkpoint::RlcCheckpoint;
+pub use sampled::{AdcEdge, ClockResult};
 
 /// Instantaneous capacitor voltage and series current directed into its positive plate.
 #[derive(Debug, Clone, Copy, PartialEq)]
