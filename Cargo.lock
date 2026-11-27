@@ -43,7 +43,7 @@ dependencies = [
 
 [[package]]
 name = "electra-ac"
-version = "0.5.12"
+version = "0.5.13"
 dependencies = [
  "aequitas",
  "electra-network",
@@ -52,7 +52,7 @@ dependencies = [
 
 [[package]]
 name = "electra-circuit"
-version = "0.5.12"
+version = "0.5.13"
 dependencies = [
  "aequitas",
  "athena-core",
@@ -62,14 +62,14 @@ dependencies = [
 
 [[package]]
 name = "electra-network"
-version = "0.5.12"
+version = "0.5.13"
 dependencies = [
  "aequitas",
 ]
 
 [[package]]
 name = "electra-schematic"
-version = "0.5.12"
+version = "0.5.13"
 
 [[package]]
 name = "eunomia"
