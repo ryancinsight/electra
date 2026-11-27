@@ -133,7 +133,7 @@ checksum = "4e7648175b45a9a48536d676f68d918270699102aa8dab5496df06904c914600"
 
 [[package]]
 name = "electra-ac"
-version = "0.5.12"
+version = "0.5.13"
 dependencies = [
  "aequitas",
  "electra-network",
@@ -142,7 +142,7 @@ dependencies = [
 
 [[package]]
 name = "electra-circuit"
-version = "0.5.12"
+version = "0.5.13"
 dependencies = [
  "aequitas",
  "athena-core",
@@ -152,7 +152,7 @@ dependencies = [
 
 [[package]]
 name = "electra-leto-direct"
-version = "0.5.12"
+version = "0.5.13"
 dependencies = [
  "electra-ac",
  "electra-circuit",
@@ -162,7 +162,7 @@ dependencies = [
 
 [[package]]
 name = "electra-network"
-version = "0.5.12"
+version = "0.5.13"
 dependencies = [
  "aequitas",
 ]

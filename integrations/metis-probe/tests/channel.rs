@@ -4,11 +4,11 @@ use electra_ac::{
     Stage,
 };
 use electra_iris_ac::{ShuntTerminal, probe::ProbeTable, visit_rc_probe};
-use electra_metis_probe::PinList;
+use electra_metis_probe::{PinEditor, PinList};
 use electra_schematic::{
-    NetId, PackageFinding, Pin, PinId, PinMap, PlacementError, Role, Schematic,
+    ModelBinding, NetId, PackageFinding, Pin, PinId, PinMap, PlacementError, Role, Schematic,
 };
-use metis_core::input::Key;
+use metis_core::input::{Accelerator, Key};
 use std::collections::BTreeMap;
 
 fn id(instance: u64, pin: u32) -> PinId {
@@ -74,9 +74,58 @@ fn two_channel_block_fault_audit_and_metis_iris_replay() {
     );
     project.insert(supply, removed);
     project.check_package(21, &contract, &contract, |f| panic!("{f:?}"));
-    let reopened = Schematic::read_connectivity(save(&project).as_slice()).unwrap();
+
     let rows = [id(12, 1), id(22, 1)];
     let mut list = PinList::new(&rows, 160., 24.).unwrap();
+    list.press([12., 36.]).unwrap();
+    list.release([12., 36.]).unwrap();
+    // Start the edit replay with the B load disconnected. Restore it to the
+    // device output before solving and inspecting the repaired channel.
+    project.pin_mut(rows[1]).unwrap().net = None;
+    let initial = save(&project);
+    let mut editor = PinEditor::new(&mut project);
+    let undo = Accelerator::parse("CmdOrCtrl+Z").unwrap();
+    let redo = Accelerator::parse("CmdOrCtrl+Shift+Z").unwrap();
+    editor.wire(&list, Some(NetId(22))).unwrap();
+    editor.label(&list, Some("channel/B/LOAD".into())).unwrap();
+    editor
+        .bind(
+            &list,
+            Some(
+                ModelBinding::new("load/resistor".into(), vec![1, 2])
+                    .unwrap()
+                    .into(),
+            ),
+        )
+        .unwrap();
+    let edited = save(editor.schematic());
+    for _ in 0..3 {
+        assert!(editor.shortcut(undo));
+    }
+    assert_eq!(save(editor.schematic()), initial);
+    assert!(
+        editor
+            .bind(
+                &list,
+                Some(
+                    ModelBinding::new("invalid".into(), vec![99])
+                        .unwrap()
+                        .into()
+                )
+            )
+            .is_err()
+    );
+    for _ in 0..3 {
+        assert!(editor.shortcut(redo));
+    }
+    let reopened = Schematic::read_connectivity(save(editor.schematic()).as_slice()).unwrap();
+    assert_eq!(save(&reopened), edited);
+    let binding = reopened.model(22).unwrap();
+    assert_eq!(
+        (binding.name(), binding.pins()),
+        ("load/resistor", &[1, 2][..])
+    );
+    assert!(reopened.model(12).is_none());
     let freq = [Frequency::from_base(1000.)];
     let solve = |drive| {
         let cells = [Stage::new(
@@ -116,7 +165,7 @@ fn two_channel_block_fault_audit_and_metis_iris_replay() {
     list.release([12., 36.]).unwrap();
     inspect(
         list.selected().unwrap(),
-        "channel/B/OUT",
+        "channel/B/LOAD",
         NetId(22),
         2.,
         0.002,
