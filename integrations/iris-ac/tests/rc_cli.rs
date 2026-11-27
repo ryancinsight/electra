@@ -5,6 +5,7 @@ use electra_ac::{
 };
 use electra_iris_ac::{
     RcOutputError, ShuntTerminal, probe::ProbeTable, rc_output_rms, rc_shunt_current_real,
+    visit_rc_probe,
 };
 use electra_schematic::{NetId, Pin, PinId, Role, Schematic};
 use std::{collections::BTreeMap, process::Command};
@@ -54,12 +55,23 @@ fn reopened_voltage_probe_matches_every_rc_cli_sample() {
         .collect::<Result<_, _>>()
         .unwrap();
     let source = ElectricPotential::from_base(2.5);
-    let voltage = rc_output_rms(model, &grid, source).unwrap();
+    let mut voltage = Vec::with_capacity(grid.len());
+    let mut current = Vec::with_capacity(grid.len());
+    visit_rc_probe(model, &grid, source, ShuntTerminal::Output, |f, v, i| {
+        assert_eq!(f, grid[voltage.len()]);
+        voltage.push(v);
+        current.push(i);
+    })
+    .unwrap();
+    assert_eq!(voltage, rc_output_rms(model, &grid, source).unwrap());
     assert_eq!(
         rc_output_rms(model, &grid, ElectricPotential::from_base(-1.)),
         Err(RcOutputError::Source)
     );
-    let current = rc_shunt_current_real(model, &grid, source, ShuntTerminal::Output).unwrap();
+    assert_eq!(
+        current,
+        rc_shunt_current_real(model, &grid, source, ShuntTerminal::Output).unwrap()
+    );
     let ground = rc_shunt_current_real(model, &grid, source, ShuntTerminal::Ground).unwrap();
     let net = NetId(17);
     let pin = PinId {
