@@ -71,6 +71,8 @@ Use the checkboxes for evidence state. The [design evidence](design-evidence.md)
 <a id="v06"></a>
 ## 0.6 · Schematic to simulation
 
+Workspace 0.6.0 completes all five checks. The [Windows editor replay](https://github.com/ryancinsight/electra/actions/runs/46083748724) repaired both injected faults, replayed undo and redo, reopened the document and matched the exported CLI deck at 1, 2 and 3 V. The final [native qualification](../scripts/verify-native-editor.py) also checks sheet identity, ordered bus lanes and junction incidence after reopen. Electra pins [Metis input history](https://github.com/ryancinsight/metis/pull/608) at `b20399c1` and the [Iris borrowed cursor](https://github.com/ryancinsight/iris/pull/105) at `7f378a65`. Both the plots and cursor consume the original DC columns. [Editor scope and commands](native-editor.md)
+
 - [x] Author and inspect two instances of an EasyEDA Pro-style reusable schematic block. Inject a swapped package pin and missing power pin; assert exact offending IDs. Use Metis pointer/keyboard input to select a hierarchical net and query the corresponding labeled Iris current/voltage traces after save/reopen.
 
 Workspace 0.5.11 qualifies the [two-channel block replay](../integrations/metis-probe/tests/channel.rs) through Metis input handling and labeled Iris readback. The replay uses native virtual-key decoding and local pointer coordinates in-process. The separate provider and native host replay gate remains open.
@@ -87,9 +89,9 @@ Workspace 0.5.6 connects reopened schematic pin selections to borrowed Iris volt
 
 Workspace 0.5.3 verifies two placed occurrences against a shared physical pad map. The [package audit fixture](../crates/electra-schematic/tests/package.rs) identifies both swapped pads and the missing supply terminal by occurrence and pin, then verifies the repair.
 
-- [ ] Qualify Metis input/undo/selection and Iris axis/cursor extensions in their owning repos. Record provider revisions and a native Electra replay with numerical samples equal to the CLI.
+- [x] Qualify Metis input/undo/selection and Iris axis/cursor extensions in their owning repos. Record provider revisions and a native Electra replay with numerical samples equal to the CLI.
 
-- [ ] Create and edit a hierarchical schematic in Metis, wire and label nets, assign pin-aware models, cross-probe and undo. Reopening yields identical canonical connectivity, model bindings and part identities.
+- [x] Create and edit a hierarchical schematic in Metis, wire and label nets, assign pin-aware models, cross-probe and undo. Reopening yields identical canonical connectivity, model bindings and part identities.
 Workspace 0.5.15 adds a Windows Metis schematic workbench and compiles placed, pin-aware source and resistor models to the shared DC deck. The platform-independent command replay verifies editing, ERC repair and three CLI-equivalent cursor samples; native execution has a separate Windows replay.
 
 Workspace 0.5.13 adds Metis-selected wiring, net naming and model assignment with host-primary undo/redo. The [editing replay](../integrations/metis-probe/tests/channel.rs) verifies exact restoration, rejected edits, post-reopen part identities and labeled Iris readback. Block authoring in the desktop editor remains open.
@@ -107,7 +109,7 @@ Workspace 0.5.2 adds versioned native connectivity snapshots that preserve occur
 
 Workspace 0.5.1 adds occurrence-aware pin connectivity and streaming ERC for required pins and conflicting push-pull drivers. The [rewiring fixture](../crates/electra-schematic/tests/connectivity.rs) verifies exact pin identities and clears both faults after editing.
 
-- [ ] On a project containing an unconnected required pin and an output conflict, ERC identifies each. Fix both, simulate through the GUI and CLI, and compare traces at matching sample points.
+- [x] On a project containing an unconnected required pin and an output conflict, ERC identifies each. Fix both, simulate through the GUI and CLI, and compare traces at matching sample points.
 
 <a id="v07"></a>
 ## 0.7 · Board and routing

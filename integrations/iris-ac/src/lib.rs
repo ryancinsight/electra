@@ -47,12 +47,9 @@ impl<'a> BodeView<'a> {
     }
     /// Read the original solver coordinate and both ordinates at a selected sample.
     pub fn sample(&self, index: usize) -> Option<(Frequency, Dimensionless, Angle)> {
-        let frequency = *self.magnitude.coordinates().get(index)?;
-        Some((
-            frequency,
-            self.magnitude.samples()[index],
-            self.phase.samples()[index],
-        ))
+        let (frequency, gain) = self.magnitude.sample_at(index)?;
+        let (_, phase) = self.phase.sample_at(index)?;
+        Some((*frequency, *gain, *phase))
     }
 }
 

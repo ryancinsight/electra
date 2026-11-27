@@ -8,7 +8,9 @@ pub(super) fn place(editor: &mut PinEditor<'_>, path: &str) -> Result<(), String
     }
     let project = editor.schematic();
     let name = format!("{path}/OUT");
-    if project.labels().any(|(_, label)| label == name) {
+    if project.sheet_parts(path).next().is_some()
+        || project.labels().any(|(_, label)| label == name)
+    {
         return Err("sheet output name is already in use".into());
     }
     let last = project.pins().last().map_or(0, |(id, _)| id.instance);
@@ -16,6 +18,7 @@ pub(super) fn place(editor: &mut PinEditor<'_>, path: &str) -> Result<(), String
         .pins()
         .filter_map(|(_, p)| p.net)
         .chain(project.labels().map(|(net, _)| net))
+        .chain(project.buses().flat_map(|(_, lanes)| lanes.iter().copied()))
         .max()
         .unwrap_or(NetId(0))
         .0;

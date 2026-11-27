@@ -2,6 +2,7 @@
 mod channel;
 mod dc;
 use crate::{PinEditor, PinList};
+pub use dc::DcCurves;
 use electra_schematic::{ModelBinding, NetId, PinId, Schematic};
 use metis_core::input::{Accelerator, Key};
 use std::{
@@ -40,6 +41,10 @@ impl<'a> Workbench<'a> {
     /// Current schematic for presentation.
     pub fn schematic(&self) -> &Schematic {
         self.editor.schematic()
+    }
+    /// Borrow the solved sweep columns for drawing. The cursor reads the same views.
+    pub fn curves(&self) -> Option<DcCurves<'_>> {
+        self.trace.as_ref()?.curves().ok()
     }
     /// Forward a primary press in row-list coordinates.
     pub fn press(&mut self, xy: [f64; 2]) -> Result<(), String> {
@@ -131,6 +136,48 @@ impl<'a> Workbench<'a> {
                     )
                     .map_err(|e| format!("{e:?}"))?;
                 self.trace = None;
+            }
+            "bus" => {
+                let mut words = arg.split_whitespace();
+                let name = words.next().ok_or("enter a bus name and ordered net IDs")?;
+                let lanes = words
+                    .map(|word| word.parse().map(NetId))
+                    .collect::<Result<Vec<_>, _>>()
+                    .map_err(|_| "invalid bus lane")?;
+                self.editor
+                    .set_bus(name.to_owned(), lanes)
+                    .map_err(|e| format!("{e:?}"))?;
+            }
+            "lanes" => {
+                let lanes = self.schematic().bus(arg).ok_or("unknown bus")?;
+                let mut result = String::from("lanes");
+                use std::fmt::Write;
+                for lane in lanes {
+                    write!(result, " {}", lane.0).expect("write to string");
+                }
+                return Ok(result);
+            }
+            "inspect" => {
+                let id = self.list.selected().ok_or("select a pin")?;
+                let model = self.schematic();
+                let sheet = model.sheet_of(id.instance).unwrap_or("(root)");
+                let binding = model.model(id.instance);
+                return Ok(format!(
+                    "sheet {sheet} part {} pin {} model {} {:?}",
+                    id.instance,
+                    id.pin,
+                    binding.map_or("(none)", |b| b.name()),
+                    binding.map_or(&[][..], |b| b.pins())
+                ));
+            }
+            "junction" => {
+                let net = NetId(arg.parse().map_err(|_| "enter a net number")?);
+                let mut result = String::from("pins");
+                use std::fmt::Write;
+                for id in self.schematic().junction(net) {
+                    write!(result, " {}.{}", id.instance, id.pin).expect("write to string");
+                }
+                return Ok(result);
             }
             "erc" => return Ok(format!("ERC {:?}", dc::erc(self.schematic()))),
             "simulate" => {

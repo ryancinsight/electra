@@ -17,6 +17,10 @@ fn repair_two_sheets_and_compare_reopened_cursor_with_exported_cli_deck() {
     };
     run(&mut w, "place A");
     run(&mut w, "place B");
+    run(&mut w, "bus taps 4 2");
+    run(&mut w, "bus taps 2 4");
+    assert!(w.execute("bus taps 1 1", &project).is_err());
+    run(&mut w, "undo");
     select(&mut w, 6);
     run(&mut w, "wire 1");
     select(&mut w, 4);
@@ -39,6 +43,13 @@ fn repair_two_sheets_and_compare_reopened_cursor_with_exported_cli_deck() {
     assert_eq!(std::fs::read(&project).unwrap(), before);
     run(&mut w, "open");
     select(&mut w, 4);
+    assert_eq!(
+        run(&mut w, "inspect"),
+        "sheet A part 3 pin 1 model R2k [1, 2]"
+    );
+    assert_eq!(run(&mut w, "lanes taps"), "lanes 4 2");
+    assert_eq!(run(&mut w, "junction 2"), "pins 2.2 3.1");
+    assert!(w.execute("place A", &project).is_err());
     run(&mut w, "export");
     let first = run(&mut w, "simulate");
     let second = run(&mut w, "cursor 1");

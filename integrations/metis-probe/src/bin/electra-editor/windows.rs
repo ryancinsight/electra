@@ -11,6 +11,8 @@ use metis_platform::{
 };
 use std::{error::Error, io, path::PathBuf, time::Duration};
 
+mod plot;
+
 const ROW_TOP: i32 = 72;
 struct EditorWindow<'a> {
     app: Workbench<'a>,
@@ -32,7 +34,7 @@ impl EditorWindow<'_> {
             draw_text(f, x, y, s, style);
         };
         text(&mut self.frame, 16, 12, "Electra   /   Schematic editor");
-        text(&mut self.frame, 16, 44, "Component.pin       Net");
+        text(&mut self.frame, 16, 44, "Sheet / component.pin       Net");
         let count = self.frame.height().saturating_sub(180) as usize / 22;
         let rows = self.app.list().rows();
         if let Some(i) = self
@@ -60,11 +62,16 @@ impl EditorWindow<'_> {
             } else {
                 " "
             };
+            let sheet = self
+                .app
+                .schematic()
+                .sheet_of(id.instance)
+                .unwrap_or("(root)");
             text(
                 &mut self.frame,
                 16,
                 ROW_TOP + 22 * i as i32,
-                &format!("{mark} {}.{}     {net}", id.instance, id.pin),
+                &format!("{mark} {sheet} / {}.{}     {net}", id.instance, id.pin),
             );
         }
         for (i, line) in [
@@ -73,6 +80,8 @@ impl EditorWindow<'_> {
             "wire <net or off>   |   label <name>",
             "bind <V2/R1k/R2k> <pin> <pin>",
             "erc   |   simulate   |   cursor <index>   |   export",
+            "bus <name> <nets>   |   lanes <name>",
+            "inspect   |   junction <net>",
             "Click or use arrows to select a pin.",
             "Type a command and press Enter. Ctrl+Z to undo.",
         ]
@@ -80,6 +89,9 @@ impl EditorWindow<'_> {
         .enumerate()
         {
             text(&mut self.frame, 380, 44 + i as i32 * 24, line);
+        }
+        if let Some(curves) = self.app.curves() {
+            plot::draw(&mut self.frame, &curves, style);
         }
         let y = self.frame.height() as i32 - 76;
         text(&mut self.frame, 16, y, &self.status);

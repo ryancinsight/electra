@@ -1,4 +1,5 @@
 mod block;
+mod hierarchy;
 mod model;
 pub use block::PlacementError;
 pub use model::ModelBinding;
@@ -51,6 +52,8 @@ pub struct Schematic {
     pins: BTreeMap<PinId, Pin>,
     models: BTreeMap<u64, std::sync::Arc<ModelBinding>>,
     labels: BTreeMap<NetId, String>,
+    sheets: BTreeMap<String, std::collections::BTreeSet<u64>>,
+    buses: BTreeMap<String, Vec<NetId>>,
 }
 
 impl Schematic {
