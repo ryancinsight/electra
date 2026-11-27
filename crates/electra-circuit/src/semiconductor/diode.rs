@@ -40,9 +40,7 @@ impl JunctionDiode {
             slope_voltage,
         })
     }
-    /// Evaluate current and conductance without allocating. Returns None for
-    /// nonfinite voltage or a result outside the finite f64 range.
-    pub fn at(&self, voltage: ElectricPotential) -> Option<DiodePoint> {
+    fn transport(&self, voltage: ElectricPotential) -> Option<(f64, f64, f64)> {
         let v = voltage.into_base();
         if !v.is_finite() {
             return None;
@@ -60,6 +58,17 @@ impl JunctionDiode {
         } else {
             (self.saturation.ln() + x).exp() - self.saturation
         };
+        current.is_finite().then_some((current, exponential, x))
+    }
+
+    pub(super) fn current(&self, voltage: ElectricPotential) -> Option<f64> {
+        self.transport(voltage).map(|(current, _, _)| current)
+    }
+
+    /// Evaluate current and conductance without allocating. Returns None for
+    /// nonfinite voltage or a result outside the finite f64 range.
+    pub fn at(&self, voltage: ElectricPotential) -> Option<DiodePoint> {
+        let (current, exponential, x) = self.transport(voltage)?;
         let scaled = self.saturation / self.slope_voltage;
         let direct = scaled * exponential;
         let conductance = if direct.is_normal() && exponential.is_normal() && scaled.is_normal() {
@@ -67,7 +76,7 @@ impl JunctionDiode {
         } else {
             ((self.saturation.ln() - self.slope_voltage.ln()) + x).exp()
         };
-        (current.is_finite() && conductance.is_finite()).then_some(DiodePoint {
+        conductance.is_finite().then_some(DiodePoint {
             current: ElectricCurrent::from_base(current),
             conductance: ElectricConductance::from_base(conductance),
         })
