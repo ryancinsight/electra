@@ -1,0 +1,18 @@
+[package]
+name = "electra-metis-probe"
+version = "0.5.10"
+edition = "2024"
+rust-version = "1.97"
+license = "MIT"
+publish = false
+
+[workspace]
+resolver = "3"
+
+[dependencies]
+electra-schematic = { path = "../../crates/electra-schematic" }
+metis-core = { git = "https://github.com/ryancinsight/metis.git", rev = "bbf6ffc97bad334c6b63eac4d71b0b5e12d29323" }
+
+[lints.rust]
+missing_docs = "deny"
+unsafe_code = "forbid"
