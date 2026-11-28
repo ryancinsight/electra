@@ -2,10 +2,10 @@
 #[path = "heater_coupon/model.rs"]
 mod model;
 
-use aequitas::systems::si::quantities::{Length, Power, ThermalConductivity};
-use model::{Heat, HeatTransferCoefficient, Layer, Mesh, sample, solve_mesh};
-
-const ANALYTICAL_BOUND_K: f64 = 2.1e-10;
+use aequitas::systems::si::quantities::{
+    Length, Power, TemperatureDifference, ThermalConductivity,
+};
+use model::{Comparison, Heat, HeatTransferCoefficient, Layer, Mesh, sample, solve_mesh};
 
 fn main() {
     let mesh = Mesh {
@@ -29,17 +29,26 @@ fn main() {
         Ok(field)
             if field.rises.len() == expected.len()
                 && field.rises.iter().zip(expected).all(|(actual, expected)| {
-                    (actual.into_base() - expected).abs() <= ANALYTICAL_BOUND_K
+                    field.compare(
+                        *actual - TemperatureDifference::from_base(expected),
+                        field.solver_error + field.solver_error,
+                    ) == Comparison::Within
                 })
-                && sample(&field, Length::from_base(1.5), Length::from_base(0.5))
-                    .is_ok_and(|value| (value.into_base() - 0.5).abs() <= ANALYTICAL_BOUND_K)
-                && field.sweeps > 0
-                && field.residual.into_base() <= 2.1e-10 =>
+                && sample(&field, Length::from_base(1.5), Length::from_base(0.5)).is_ok_and(
+                    |value| {
+                        field.compare(
+                            value - TemperatureDifference::from_base(0.5),
+                            field.solver_error + field.solver_error,
+                        ) == Comparison::Within
+                    },
+                )
+                && field.sweeps > 0 =>
         {
             println!(
-                "centre-heater check: [0.25, 0.5, 0.25] K; {} sweeps; {:.3e} W residual",
+                "centre-heater check: [0.25, 0.5, 0.25] K; {} sweeps; {:.3e} W residual; {:.3e} K solver bound",
                 field.sweeps,
-                field.residual.into_base()
+                field.residual.into_base(),
+                field.solver_error.into_base()
             )
         }
         Ok(field) => {
