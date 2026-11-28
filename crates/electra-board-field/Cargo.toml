@@ -19,5 +19,9 @@ electra-network = { path = "../electra-network", version = "0.7.2" }
 name = "heater_sheet"
 test = true
 
+[[example]]
+name = "heater_coupon"
+test = true
+
 [lints]
 workspace = true
