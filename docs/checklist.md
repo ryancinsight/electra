@@ -114,15 +114,17 @@ Workspace 0.5.1 adds occurrence-aware pin connectivity and streaming ERC for req
 <a id="v07"></a>
 ## 0.7 · Board and routing
 
+Workspace 0.6.3 qualifies the four-layer board, rule 17 cross-highlighting, ECO and undo, independent KiCad interchange and native fault checks. [Editor commands, scope and evidence](board/editor.md)
+
 Workspace 0.6.1 establishes the shared board crate. The [driver migration inventory](board/driver.md) records the pre- and post-extraction consumer runs.
 
-- [ ] Exercise an OrCAD X-style shared constraint ID, EasyEDA Pro layout reuse/ECO with an unrelated locked instance, and DipTrace-style pair tuning. A known length/skew violation and repair must produce the expected signed margin. Verify cross-highlighting survives rename, undo and reload.
+- [x] Exercise an OrCAD X-style shared constraint ID, EasyEDA Pro layout reuse/ECO with an unrelated locked instance, and DipTrace-style pair tuning. A known length/skew violation and repair must produce the expected signed margin. Verify cross-highlighting survives rename, undo and reload.
 Workspace 0.6.2 compares two placement policies on independent KiCad demo boards. All eight runs produced rule violations. The experimental policy stays opt-in. [Protocol, measurements and limitations](board/placement.md)
 
 - [x] Run the research placer against the driver placer on held-out boards under the same router, seeds and time limit. Publish completion, DRC faults, vias, total length, memory and time, including failed routes.
 
-- [ ] Place footprints, route two layers and a differential pair on a four-layer design, add vias, keepouts and a copper zone. Verify that a schematic ECO updates the intended pads and reference designators.
-- [ ] DRC catches an injected short, open, clearance, drill/annular-ring and differential-pair mismatch. Removing each fault clears its diagnostic. Round-trip the board and footprint library and compare connectivity, stack-up, coordinates, drill sizes and zone boundaries.
+- [x] Place footprints, route two layers and a differential pair on a four-layer design, add vias, keepouts and a copper zone. Verify that a schematic ECO updates the intended pads and reference designators.
+- [x] DRC catches an injected short, open, clearance, drill/annular-ring and differential-pair mismatch. Removing each fault clears its diagnostic. Round-trip the board and footprint library and compare connectivity, stack-up, coordinates, drill sizes and zone boundaries.
 - [ ] Run existing kwavers-driver board consumers through delegating APIs. Preserve routed-pair and UUID contracts, and inventory every extracted module and remaining consumer.
 
 <a id="v08"></a>

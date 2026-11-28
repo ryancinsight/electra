@@ -1,0 +1,29 @@
+name: Four-layer board replay
+on:
+  pull_request:
+    paths:
+      - 'crates/electra-board/**'
+      - 'crates/electra-schematic/**'
+      - 'integrations/kicad-board/**'
+      - '.github/workflows/board-replay.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  replay:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build and test the board engines
+        run: |
+          rustup toolchain install 1.97.0 --profile minimal
+          cargo +1.97.0 test --locked -p electra-board -p electra-schematic
+          cargo +1.97.0 build --locked -p electra-board -p electra-schematic --bins
+      - name: Run native and KiCad checks on the same board
+        run: |
+          docker run --rm -v "$PWD:/repo:ro" -w /repo debian:trixie-slim sh -ec '
+            apt-get update -qq
+            apt-get install -y --no-install-recommends kicad python3
+            kicad-cli version
+            /usr/bin/python3 integrations/kicad-board/verify.py /repo/target/debug/electra-pin-table /repo/target/debug/electra-pair'

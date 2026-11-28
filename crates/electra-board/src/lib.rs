@@ -4,3 +4,4 @@ pub mod geom;
 pub mod kicad;
 pub mod place;
 pub mod route;
+pub mod rules;

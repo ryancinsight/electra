@@ -4,6 +4,8 @@ Electra is the Atlas project for electronic circuit simulation and PCB design. T
 
 Workspace 0.6.0 adds a Windows schematic editor with hierarchical channels, electrical rule checks, shared DC simulation and typed voltage/current plots. [Native editor guide](docs/native-editor.md)
 
+Electra can edit a four-layer KiCad board from its schematic pin identities and check its copper, drill and differential-pair margins. [Board editor guide](docs/board/editor.md)
+
 Run `python3 scripts/v1-progress.py` to see the workspace version and completed acceptance checks for every milestone through 1.0. Each check has equal weight in the count. The [backlog](backlog.md) defines scope and release dependencies, and the [checklist](docs/checklist.md) records qualification evidence.
 
 ```sh
