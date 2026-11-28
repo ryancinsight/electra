@@ -20,7 +20,9 @@ impl RoutingCost for Uniform {
 fn main() -> Result<(), Box<dyn Error>> {
     let args: Vec<_> = std::env::args().skip(1).collect();
     let [file, policy, seed, output] = args.as_slice() else {
-        return Err("usage: electra-place-study INPUT driver|research SEED OUTPUT.kicad_pcb".into());
+        return Err(
+            "usage: electra-place-study INPUT driver|research SEED OUTPUT.kicad_pcb".into(),
+        );
     };
     let mut data = input::load(&std::fs::read_to_string(file)?)?;
     let seed = seed.parse()?;

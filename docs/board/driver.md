@@ -1,6 +1,6 @@
 # Driver board extraction
 
-The source baseline is [kwavers 34fa3f47](https://github.com/ryancinsight/kwavers/tree/34fa3f47ae07e28d433b10a22c746f2c982e042e/crates/kwavers-driver/src). The driver suite passed 495 tests on the baseline and 495 tests with the extracted types delegated locally. The suite includes per-layer differential-pair length, pad entry, routing, and repeated-UUID cases.
+The source baseline is [kwavers 34fa3f47](https://github.com/ryancinsight/kwavers/tree/34fa3f47ae07e28d433b10a22c746f2c982e042e/crates/kwavers-driver/src). The production migration merged in [kwavers #1177](https://github.com/ryancinsight/kwavers/pull/1177) at `4ec0d254`. Its lockfile pins the shared provider at `7a5d4c65`. [Consumer CI](https://github.com/ryancinsight/kwavers/actions/runs/46094394493). The driver suite passed 495 tests on the baseline and 495 tests with the extracted types delegated locally. The suite includes per-layer differential-pair length, pad entry, routing, and repeated-UUID cases.
 
 | Electra module | Extracted driver responsibilities | Remaining driver consumers |
 |---|---|---|

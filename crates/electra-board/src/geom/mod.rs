@@ -29,8 +29,8 @@ impl Point {
     #[inline]
     #[must_use]
     pub fn euclid(self, other: Point) -> f64 {
-        let dx = (self.x.0 - other.x.0) as f64;
-        let dy = (self.y.0 - other.y.0) as f64;
+        let dx = (i128::from(self.x.0) - i128::from(other.x.0)) as f64;
+        let dy = (i128::from(self.y.0) - i128::from(other.y.0)) as f64;
         (dx * dx + dy * dy).sqrt()
     }
 }

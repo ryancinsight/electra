@@ -9,6 +9,7 @@ import tempfile
 
 import pcbnew as k
 from . import geometry
+from .template import place_layout
 from .project import Project, capture, identity
 from .settings import set_class, write_json
 from .check import measure, copper
@@ -31,6 +32,17 @@ def run_edits(project, actions, reader):
             project.apply(capture(reader, action["schematic"]), refs)
         elif op == "undo-eco":
             project.undo()
+        elif op == "layout":
+            path = Path(action["board"])
+            if not path.is_file():
+                raise FileNotFoundError(path)
+            place_layout(
+                board,
+                k.LoadBoard(str(path)),
+                action["offset"],
+                action["references"],
+                action["nets"],
+            )
         elif op == "place":
             geometry.place(
                 board,
