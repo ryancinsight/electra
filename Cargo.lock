@@ -58,8 +58,10 @@ version = "0.7.2"
 name = "electra-board-field"
 version = "0.7.2"
 dependencies = [
+ "aequitas",
  "electra-ac",
  "electra-board",
+ "electra-network",
 ]
 
 [[package]]
