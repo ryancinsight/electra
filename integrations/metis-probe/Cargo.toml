@@ -1,6 +1,6 @@
 [package]
 name = "electra-metis-probe"
-version = "0.7.1"
+version = "0.7.2"
 edition = "2024"
 rust-version = "1.97"
 license = "MIT"
@@ -27,3 +27,9 @@ path = "../../crates/electra-ac"
 [lints.rust]
 missing_docs = "deny"
 unsafe_code = "forbid"
+
+[dependencies.electra-board]
+path = "../../crates/electra-board"
+
+[dependencies.electra-board-field]
+path = "../../crates/electra-board-field"

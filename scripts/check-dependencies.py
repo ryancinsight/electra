@@ -6,7 +6,7 @@ import subprocess
 
 ROOT = Path(__file__).resolve().parents[1]
 REGISTRY = "registry+https://github.com/rust-lang/crates.io-index"
-WORKSPACE = {"electra-network", "electra-circuit", "electra-ac", "electra-schematic", "electra-board"}
+WORKSPACE = {"electra-network", "electra-circuit", "electra-ac", "electra-schematic", "electra-board", "electra-board-field"}
 PROVIDERS = {"athena-core": "athena", "aequitas": "aequitas", "eunomia": "eunomia", "eunomia-derive": "eunomia"}
 # Reviewed package versions inherited via Aequitas/Eunomia, including build-time macros.
 # Removing one needs no exception. Adding or upgrading one requires a new closure review.

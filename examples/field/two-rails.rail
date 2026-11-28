@@ -1,0 +1,7 @@
+# rows cols origin_x_mm origin_y_mm pitch_mm
+2 2 10 20 2
+# net dx_mm dy_mm width_mm copper_um rho_ohm_m alpha_per_K theta_K_per_W current_A
+4 30 40 0.5 35 1.724e-8 0.00393 50 1
+7 60 80 0.5 35 1.724e-8 0.00393 60 2
+4 30 40 0.5 35 1.724e-8 0.00393 50 0.5
+7 60 80 0.5 35 1.724e-8 0.00393 60 1
