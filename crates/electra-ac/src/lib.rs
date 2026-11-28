@@ -11,6 +11,7 @@
 //! # Ok::<(), electra_ac::AcError>(())
 //! ```
 mod error;
+pub mod interconnect;
 mod ladder;
 pub mod magnetics;
 pub mod nodal;
@@ -23,7 +24,8 @@ pub use summation::PhasorSum;
 
 pub use aequitas::systems::si::quantities::{
     Angle, Capacitance, Dimensionless, ElectricConductance, ElectricCurrent, ElectricPotential,
-    ElectricalImpedance, Frequency, Inductance, ThermodynamicTemperature,
+    ElectricalImpedance, Frequency, Inductance, Length, MagneticPermeability, Permittivity, Power,
+    ReciprocalTemperature, TemperatureDifference, ThermodynamicTemperature, Time,
 };
 pub use error::AcError;
 pub use eunomia::Complex64;

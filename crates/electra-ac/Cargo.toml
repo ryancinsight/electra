@@ -12,7 +12,7 @@ repository.workspace = true
 [dependencies]
 aequitas.workspace = true
 eunomia.workspace = true
-electra-network = { version = "0.7.0", path = "../electra-network" }
+electra-network = { version = "0.7.1", path = "../electra-network" }
 
 [lints]
 workspace = true

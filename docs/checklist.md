@@ -132,12 +132,14 @@ Workspace 0.6.2 compares two placement policies on independent KiCad demo boards
 <a id="v08"></a>
 ## 0.8 · Interconnect and field coupling
 
+Workspace 0.7.1 qualifies the [uniform line and annular field solve](field/interconnect.md).
+
 - [ ] Compare two PCB heater layouts at recorded input power, stack-up and ambient conditions. Validate simulated peak and spatial temperature rise against measured locations and uncertainty; record coupon-specific limits.
 - [ ] On a pinned board compare fixed-via and joint via/decap candidates under the same component budget against the same target impedance over frequency. Verify the winning trace independently. Detect an injected passivity violation, measure fit change after repair, and check energy into passive terminations.
 - [ ] Use Metis to probe an Iris rail-drop and thermal overlay at a known board coordinate. Check value, unit, physical position and selected net against solver samples at two zoom levels.
 
-- [ ] Recover matched/open/short line reflection coefficients of 0/+1/−1 within 0.01 and the predicted flight time within 1%. Check reciprocity and passivity of a known passive two-port over the declared band.
-- [ ] Compare extracted per-unit-length C/L on a defined cross section to an analytical reference within 2%; refine twice and require <1% change on the last refinement. Record mesh, conductor and dielectric assumptions.
+- [x] Recover matched/open/short line reflection coefficients of 0/+1/−1 within 0.01 and the predicted flight time within 1%. Check reciprocity and passivity of a known passive two-port over the declared band.
+- [x] Compare extracted per-unit-length C/L on a defined cross section to an analytical reference within 2%; refine twice and require <1% change on the last refinement. Record mesh, conductor and dielectric assumptions.
 - [ ] Compare temperature-dependent rail drop and dissipated power to an independent circuit/thermal balance within 1%. Validate a 1 MHz nominal piezoelectric equivalent circuit with declared motional R/L/C and clamped capacitance; compare impedance extrema and drive power at the electrical port. Measured-device claims require measured parameters and an independent sweep.
 
 <a id="v09"></a>
