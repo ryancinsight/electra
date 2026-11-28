@@ -69,6 +69,7 @@ impl ViaPair {
         let resistance = 2.0 * rho * length / (std::f64::consts::PI * drill * plating);
         let inductance =
             VACUUM_PERMEABILITY * length / std::f64::consts::PI * (pitch / drill).acosh();
+        // Reject finite inputs whose derived parasitic was erased by underflow.
         if ![resistance, inductance]
             .into_iter()
             .all(|value| value.is_finite() && value > 0.0)

@@ -1,0 +1,37 @@
+# Synthetic independent FiPy input; it is not a laboratory-temperature claim.
+# Geometry derives from the Hannover design archive, `design/Hilbert.kicad_pcb`.
+# Source: Shobowale, Ledesma, Kaestner, DOI 10.25835/0pua6j2o; CC BY-NC-SA 4.0.
+# design.zip SHA-256: 964EA8F93D16F208B7943563CAD490DCB9B330B9874FF9D4BABBB07B2EEDDB2D.
+# The 3x3 cells cover the 100 mm board. KiCad's y axis is inverted into this
+# fixture's lower-left coordinate system: y_fixture_mm = 130 - y_kicad_mm.
+# Each source fraction is the exact centerline length fraction after clipping
+# all 3,283 F.Cu straight segments at x/y = 63.333... and 96.666... mm.
+# No continuous copper spreading sheet is assumed; only FR4-equivalent sheet conduction.
+format electra-heater-coupon-v1
+coupon hannover-hilbert-fipy
+reference simulation FiPy-4.0.3
+geometry_mm 100 100 3 3
+ambient_c 20
+input_power_w 7.22277
+air_conductance_w_m2k 10
+layer_mm_w_mk fr4 1.6 0.30
+heater 0 0 0.09687009186871758
+heater 0 1 0.11515351559532004
+heater 0 2 0.09687009254231778
+heater 1 0 0.11515351509011987
+heater 1 1 0.13712569933631358
+heater 1 2 0.11515351593211992
+heater 2 0 0.10188237878649069
+heater 2 1 0.11990881122010984
+heater 2 2 0.10188237962849081
+
+sensor_c cell-0 16.666666666667 16.666666666667 83.890823 0.000001
+sensor_c cell-1 50.000000000000 16.666666666667 94.484998 0.000001
+sensor_c cell-2 83.333333333333 16.666666666667 83.890823 0.000001
+sensor_c cell-3 16.666666666667 50.000000000000 94.604219 0.000001
+sensor_c cell-4 50.000000000000 50.000000000000 107.097793 0.000001
+sensor_c cell-5 83.333333333333 50.000000000000 94.604219 0.000001
+sensor_c cell-6 16.666666666667 83.333333333333 87.008231 0.000001
+sensor_c cell-7 50.000000000000 83.333333333333 97.459963 0.000001
+sensor_c cell-8 83.333333333333 83.333333333333 87.008231 0.000001
+peak_c 50.000000000000 50.000000000000 107.097793 0.000001

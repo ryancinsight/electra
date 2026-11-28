@@ -4,10 +4,10 @@ import re
 import tomllib
 
 root = Path(__file__).resolve().parents[1]
-manifest = tomllib.loads((root / "Cargo.toml").read_text())
+manifest = tomllib.loads((root / "Cargo.toml").read_text(encoding="utf-8"))
 print(f"Workspace {manifest['workspace']['package']['version']} | Target 1.0")
 milestones = {}
-for line in (root / "docs/checklist.md").read_text().splitlines():
+for line in (root / "docs/checklist.md").read_text(encoding="utf-8").splitlines():
     heading = re.fullmatch(r"## (\d+\.\d+) · (.+)", line)
     if heading:
         milestone = heading.group(1)

@@ -370,6 +370,27 @@ heater 0 0 1\n\
 sensor_c point 500 500 27.475 0.000001\n\
 peak_c 2500 500 27.475 0.000001";
 
+    #[test]
+    fn published_layouts_match_independent_cell_and_peak_references() {
+        let cases = [
+            (
+                include_str!("heater_coupon/fixtures/hannover_hilbert_fipy.txt"),
+                7.22277,
+            ),
+            (
+                include_str!("heater_coupon/fixtures/hannover_meander_fipy.txt"),
+                6.27372,
+            ),
+        ];
+        for (source, power_watts) in cases {
+            let coupon = parse(source).unwrap();
+            assert_eq!(coupon.power.into_base(), power_watts);
+            assert_eq!(coupon.sensors.len(), coupon.mesh.rows * coupon.mesh.columns);
+            let field = solve_mesh(&coupon.mesh).unwrap();
+            report(&coupon, &field).unwrap();
+        }
+    }
+
     fn parse_error(text: &str) -> String {
         parse(text).err().expect("invariant: fixture is malformed")
     }
@@ -387,10 +408,44 @@ peak_c 2500 500 27.475 0.000001";
             parse_error(&EDGE.replace("heater 0 0 1", "heater 0 0 1e308")),
             "missing, nonpositive, or nonfinite coupon input"
         );
+        assert_eq!(
+            report_one(
+                &coupon,
+                &coupon.sensors[0],
+                "point",
+                TemperatureDifference::from_base(1.),
+                &solve_mesh(&coupon.mesh).unwrap(),
+            ),
+            Comparison::Outside
+        );
         let field = solve_mesh(&coupon.mesh).unwrap();
         assert_eq!(
             report(&coupon, &field).unwrap_err(),
             "1 comparison(s) mismatch or remain solver-unresolved"
+        );
+    }
+
+    #[test]
+    fn scaled_reference_accepts_the_exact_rise_and_rejects_the_first_sweep() {
+        // The unit and scaled equations differ only by a positive factor.
+        // Their solution is [5/8, 1/4, 1/8] K, including the left-edge peak.
+        let scaled = EDGE
+            .replace("peak_c 2500", "peak_c 500")
+            .replace("input_power_w 1", "input_power_w 1e-13")
+            .replace("air_conductance_w_m2k 1", "air_conductance_w_m2k 1e-13")
+            .replace("copper 1000 1", "copper 1000 1e-13");
+        let coupon = parse(&scaled).unwrap();
+        let field = solve_mesh(&coupon.mesh).unwrap();
+        report(&coupon, &field).unwrap();
+        let first_sweep = parse(&scaled.replace("27.475", "27.35")).unwrap();
+        assert_eq!(
+            report(&first_sweep, &field).unwrap_err(),
+            "3 comparison(s) mismatch or remain solver-unresolved"
+        );
+        let narrow = parse(&scaled.replace("0.000001", "1e-24")).unwrap();
+        assert_ne!(
+            report_one(&narrow, &narrow.peak, "peak", field.rises[0], &field),
+            Comparison::Within
         );
     }
 }
