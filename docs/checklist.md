@@ -132,6 +132,8 @@ Workspace 0.6.2 compares two placement policies on independent KiCad demo boards
 <a id="v08"></a>
 ## 0.8 · Interconnect and field coupling
 
+[Two-port passivity repair](field/passivity.md) covers the model-fit and termination-energy portion of the via/decap check.
+
 Workspace 0.7.2 adds the [routed rail, native field probe and nominal piezo port](field/ports.md).
 
 Workspace 0.7.1 qualifies the [uniform line and annular field solve](field/interconnect.md).
