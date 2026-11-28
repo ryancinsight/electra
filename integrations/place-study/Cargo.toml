@@ -1,0 +1,10 @@
+[package]
+name = "electra-place-study"
+version = "0.6.2"
+edition = "2024"
+publish = false
+
+[workspace]
+
+[dependencies]
+kwavers-driver = { git = "https://github.com/ryancinsight/kwavers.git", rev = "34fa3f47ae07e28d433b10a22c746f2c982e042e" }
