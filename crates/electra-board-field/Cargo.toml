@@ -15,5 +15,9 @@ electra-board = { path = "../electra-board", version = "0.7.2" }
 aequitas.workspace = true
 electra-network = { path = "../electra-network", version = "0.7.2" }
 
+[[example]]
+name = "heater_sheet"
+test = true
+
 [lints]
 workspace = true
