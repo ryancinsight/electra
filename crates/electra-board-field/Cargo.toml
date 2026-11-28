@@ -1,0 +1,15 @@
+[package]
+name = "electra-board-field"
+description = "Coupled electrical and thermal models for routed copper"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+electra-ac = { path = "../electra-ac", version = "0.7.2" }
+electra-board = { path = "../electra-board", version = "0.7.2" }
+
+[lints]
+workspace = true

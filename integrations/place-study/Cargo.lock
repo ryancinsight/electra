@@ -34,9 +34,26 @@ dependencies = [
 ]
 
 [[package]]
-name = "electra-place-study"
-version = "0.7.1"
+name = "electra-ac"
+version = "0.7.2"
 dependencies = [
+ "aequitas",
+ "electra-network",
+ "eunomia",
+]
+
+[[package]]
+name = "electra-network"
+version = "0.7.2"
+dependencies = [
+ "aequitas",
+]
+
+[[package]]
+name = "electra-place-study"
+version = "0.7.2"
+dependencies = [
+ "electra-ac",
  "kwavers-driver",
 ]
 

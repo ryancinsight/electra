@@ -105,6 +105,23 @@ def replay(editor, cli):
                 assert drive == index + 1
                 assert math.isclose(volts, voltages[index], rel_tol=1e-11)
                 assert math.isclose(amps, currents[index], rel_tol=1e-11)
+            fixture = Path(__file__).resolve().parents[1] / "examples/field/two-rails.rail"
+            path.with_suffix(".rail").write_bytes(fixture.read_bytes())
+            for mode, zoom in [("drop", 1), ("thermal", 2)]:
+                command(f"field {mode} {zoom}", f"field {mode} zoom {zoom}")
+                point = (380 + 36 * zoom) | ((320 + 12 * zoom) << 16)
+                post(0x201, 1, point)
+                post(0x202, 0, point)
+                sample = lines.get(timeout=15)
+                match = re.fullmatch(r"net 7 x=(\S+) mm y=(\S+) mm drop=(\S+) V rise=(\S+) K", sample)
+                assert match, sample
+                x, y, drop, rise = map(float, match.groups())
+                cold = 1.724e-8 * 0.1 / (0.0005 * 35e-6)
+                expected = 0.
+                for _ in range(80):
+                    expected = 60 * 4 * cold * (1 + 0.00393 * expected)
+                assert math.isclose(x, 13.) and math.isclose(y, 21.)
+                assert math.isclose(rise, expected) and math.isclose(drop, expected / 120.)
             post(0x10)
             assert process.wait(timeout=15) == 0
             print("Native Metis editor replay passed (3/3 Iris and CLI samples).")

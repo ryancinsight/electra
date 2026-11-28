@@ -11,8 +11,8 @@ repository.workspace = true
 [dependencies]
 athena-core.workspace = true
 aequitas.workspace = true
-electra-ac = { path = "../electra-ac", version = "0.7.1" }
-electra-network = { path = "../electra-network", version = "0.7.1" }
+electra-ac = { path = "../electra-ac", version = "0.7.2" }
+electra-network = { path = "../electra-network", version = "0.7.2" }
 
 [[bin]]
 name = "electra"

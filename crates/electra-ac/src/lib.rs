@@ -16,6 +16,7 @@ mod ladder;
 pub mod magnetics;
 pub mod nodal;
 pub mod pdn;
+pub mod piezo;
 mod port;
 mod response;
 mod summation;

@@ -11,6 +11,7 @@ use metis_platform::{
 };
 use std::{error::Error, io, path::PathBuf, time::Duration};
 
+mod field;
 mod plot;
 
 const ROW_TOP: i32 = 72;
@@ -21,6 +22,7 @@ struct EditorWindow<'a> {
     command: String,
     status: String,
     scroll: usize,
+    field: Option<field::Field>,
 }
 impl EditorWindow<'_> {
     fn report(&mut self, result: Result<String, String>) {
@@ -82,7 +84,7 @@ impl EditorWindow<'_> {
             "erc   |   simulate   |   cursor <index>   |   export",
             "bus <name> <nets>   |   lanes <name>",
             "inspect   |   junction <net>",
-            "Click or use arrows to select a pin.",
+            "field <drop/thermal> <1/2>   |   field off",
             "Type a command and press Enter. Ctrl+Z to undo.",
         ]
         .iter()
@@ -90,7 +92,9 @@ impl EditorWindow<'_> {
         {
             text(&mut self.frame, 380, 44 + i as i32 * 24, line);
         }
-        if let Some(curves) = self.app.curves() {
+        if let Some(view) = &self.field {
+            view.draw(&mut self.frame, style);
+        } else if let Some(curves) = self.app.curves() {
             plot::draw(&mut self.frame, &curves, style);
         }
         let y = self.frame.height() as i32 - 76;
@@ -142,6 +146,9 @@ impl NativeApplication for EditorWindow<'_> {
                     y,
                     button: MouseButton::Left,
                 } => {
+                    if let Some(readout) = self.field.as_ref().and_then(|view| view.read(x, y)) {
+                        self.report(Ok(readout));
+                    }
                     self.app
                         .release(self.coords(x, y))
                         .map_err(io::Error::other)?;
@@ -166,7 +173,19 @@ impl NativeApplication for EditorWindow<'_> {
                     } else if key == Key::Enter && !repeated {
                         let line = std::mem::take(&mut self.command);
                         if !line.is_empty() {
-                            let r = self.app.execute(&line, &self.path);
+                            let words: Vec<_> = line.split_whitespace().collect();
+                            let r = match words.as_slice() {
+                                ["field", "off"] => {
+                                    self.field = None;
+                                    Ok("field off".into())
+                                }
+                                ["field", mode, zoom] => field::Field::load(&self.path, mode, zoom)
+                                    .map(|field| {
+                                        self.field = Some(field);
+                                        format!("field {mode} zoom {zoom}")
+                                    }),
+                                _ => self.app.execute(&line, &self.path),
+                            };
                             self.report(r);
                         }
                     } else if key == Key::Backspace {
@@ -204,6 +223,7 @@ pub(super) fn run() -> Result<(), Box<dyn Error>> {
         command: String::new(),
         status: "Place a channel or open the saved project.".into(),
         scroll: 0,
+        field: None,
     };
     window.draw();
     run_native_application(
