@@ -1,7 +1,38 @@
 """Pair length checks against stable capture endpoints and routed copper."""
 
 import subprocess
+import tempfile
 import pcbnew as k
+
+
+def _run_records(args, records):
+    # Spool findings because a checker can emit before it finishes reading. A pipe
+    # in both directions could deadlock on a large defective design.
+    with tempfile.TemporaryFile(mode="w+t") as output, tempfile.TemporaryFile(
+        mode="w+t"
+    ) as errors:
+        with subprocess.Popen(
+            args, stdin=subprocess.PIPE, stdout=output, stderr=errors, text=True
+        ) as child:
+            with child.stdin as pipe:
+                for record in records:
+                    pipe.write(record)
+                    pipe.write("\n")
+            if child.wait():
+                errors.seek(0)
+                raise ValueError(errors.read().strip() or "board rule check failed")
+        output.seek(0)
+        yield from output
+
+
+def _pair_segments(board, pos, neg):
+    for t in board.GetTracks():
+        if t.GetNetCode() not in (pos, neg) or isinstance(t, k.PCB_VIA):
+            continue
+        if isinstance(t, k.PCB_ARC):
+            raise ValueError("pair length requires straight track segments")
+        a, b = t.GetStart(), t.GetEnd()
+        yield f"{t.GetNetCode()} {a.x} {a.y} {b.x} {b.y}"
 
 
 def measure(project, rule_id, binary):
@@ -9,30 +40,18 @@ def measure(project, rule_id, binary):
     pos, neg = [
         project.pads[tuple(endpoint)][0].GetNetCode() for endpoint in rule["endpoints"]
     ]
-    rows = []
-    for t in project.board.GetTracks():
-        if t.GetNetCode() not in (pos, neg) or isinstance(t, k.PCB_VIA):
-            continue
-        if isinstance(t, k.PCB_ARC):
-            raise ValueError("pair length requires straight track segments")
-        a, b = t.GetStart(), t.GetEnd()
-        rows.append(f"{t.GetNetCode()} {a.x} {a.y} {b.x} {b.y}\n")
     args = [
         str(x)
         for x in (binary, rule_id, pos, neg, rule["max_length_nm"], rule["max_skew_nm"])
     ]
-    data = subprocess.run(
-        args, input="".join(rows), capture_output=True, text=True, check=True
-    )
-    key, positive, negative, length, skew = data.stdout.split()
+    (row,) = _run_records(args, _pair_segments(project.board, pos, neg))
+    key, positive, negative, length, skew = row.split()
     return int(key), *map(float, (positive, negative, length, skew))
 
 
-def copper(board, binary, limits):
+def _conductors(board, objects):
     """Stream the supported physical primitives; delegate other shapes to the full KiCad DRC."""
     layers = list(board.GetEnabledLayers().CuStack())
-    objects = []
-    rows = []
     deferred = set()
 
     def add(kind, item, a, b, width, span, drill=None):
@@ -40,7 +59,7 @@ def copper(board, binary, limits):
         row = [kind, item.GetNetCode(), a.x, a.y, b.x, b.y, width, *span]
         if drill is not None:
             row.append(drill)
-        rows.append(" ".join(map(str, row)))
+        return " ".join(map(str, row))
 
     for fp in board.GetFootprints():
         for pad in fp.Pads():
@@ -56,7 +75,7 @@ def copper(board, binary, limits):
             ):
                 deferred.add(pad.GetNetCode())
                 continue
-            add(
+            yield add(
                 "pad",
                 pad,
                 pad.GetPosition(),
@@ -69,7 +88,7 @@ def copper(board, binary, limits):
             continue
         if isinstance(t, k.PCB_VIA):
             a, b = sorted([layers.index(t.TopLayer()), layers.index(t.BottomLayer())])
-            add(
+            yield add(
                 "via",
                 t,
                 t.GetPosition(),
@@ -82,23 +101,21 @@ def copper(board, binary, limits):
             deferred.add(t.GetNetCode())
         else:
             l = layers.index(t.GetLayer())
-            add("track", t, t.GetStart(), t.GetEnd(), t.GetWidth(), [l, l])
+            yield add("track", t, t.GetStart(), t.GetEnd(), t.GetWidth(), [l, l])
     for z in board.Zones():
         if not z.GetIsRuleArea() and any(
             z.HasFilledPolysForLayer(l) and z.GetFilledPolysList(l).OutlineCount()
             for l in layers
         ):
             deferred.add(z.GetNetCode())
-    rows.extend(f"defer {n}" for n in sorted(deferred))
-    data = subprocess.run(
-        [binary, *map(str, limits)],
-        input="\n".join(rows),
-        text=True,
-        capture_output=True,
-        check=True,
-    )
+    for n in sorted(deferred):
+        yield f"defer {n}"
+
+
+def copper(board, binary, limits):
+    objects = []
     findings = []
-    for line in data.stdout.splitlines():
+    for line in _run_records([binary, *map(str, limits)], _conductors(board, objects)):
         kind, *indices = line.split()
         findings.append(
             [

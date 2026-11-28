@@ -392,6 +392,9 @@ def exercise(directory, reader, checker):
     assert "clearance" in drc(reopened.board, path, write=False)
     cli("net-class", "Pair", "200000", "180000", "1", "2")
     assert not drc(reopened.board, path, write=False)
+    from layout_replay import verify_layout
+
+    verify_layout(directory, path, reader, checker, lib, source)
     print(
         "four-layer board, footprint library, cross-highlighting and shared rule 17 passed"
     )

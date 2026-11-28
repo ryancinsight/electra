@@ -38,3 +38,7 @@ For each relevant result, assign an owner, comparison baseline, metric, limitati
 ### 0.6 evidence refresh
 
 The November 25–27, 2026 incremental search covered IEEE Xplore, ACM and arXiv using schematic simulation, DAE, SPICE, behavioral and mixed-signal models, probing, routing optimization, SI/PI, electrothermal analysis and fabrication verification. No newly dated result screened in this window supplied a new acceptance fixture. The prior eSim, EasyEDA and DipTrace workflow comparisons remain the basis for the two-sheet qualification. It exercises a Windows host, the independent KiCad 9.0.2 property round-trip and a resistive DC project. The [milestone checklist](checklist.md#v06) links the executable evidence.
+
+### 0.7 evidence refresh
+
+Reviewed November 27, 2026. The search repeated the previous cutoff for PCB placement, pad alignment, routing and differential-pair verification across TCAD, DAC, ICCAD, DATE and arXiv, with adjacent searches for SPICE/DAE, compact and behavioral models, SI/PI and electrothermal verification. The prior TCAD placement study supplied the experiment design. The [held-out comparison](board/placement.md) uses independent KiCad layouts, two fixed seeds, a common router, physical DRC and process measurements. All eight configurations produced faults and the experimental policy routed fewer nets at both seeds. Retain the driver baseline and leave the experimental policy opt-in. The [four-layer fixture](board/editor.md) independently qualifies layout reuse, ECO, physical rules, signed margins and interchange.
