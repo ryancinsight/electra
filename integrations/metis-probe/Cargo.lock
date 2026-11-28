@@ -508,7 +508,7 @@ dependencies = [
 
 [[package]]
 name = "electra-ac"
-version = "0.6.1"
+version = "0.6.2"
 dependencies = [
  "aequitas",
  "electra-network",
@@ -517,7 +517,7 @@ dependencies = [
 
 [[package]]
 name = "electra-circuit"
-version = "0.6.1"
+version = "0.6.2"
 dependencies = [
  "aequitas",
  "athena-core",
@@ -527,7 +527,7 @@ dependencies = [
 
 [[package]]
 name = "electra-iris-ac"
-version = "0.6.1"
+version = "0.6.2"
 dependencies = [
  "electra-ac",
  "electra-schematic",
@@ -536,7 +536,7 @@ dependencies = [
 
 [[package]]
 name = "electra-metis-probe"
-version = "0.6.1"
+version = "0.6.2"
 dependencies = [
  "electra-ac",
  "electra-circuit",
@@ -549,14 +549,14 @@ dependencies = [
 
 [[package]]
 name = "electra-network"
-version = "0.6.1"
+version = "0.6.2"
 dependencies = [
  "aequitas",
 ]
 
 [[package]]
 name = "electra-schematic"
-version = "0.6.1"
+version = "0.6.2"
 
 [[package]]
 name = "elliptic-curve"
