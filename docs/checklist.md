@@ -114,6 +114,8 @@ Workspace 0.5.1 adds occurrence-aware pin connectivity and streaming ERC for req
 <a id="v07"></a>
 ## 0.7 · Board and routing
 
+Workspace 0.6.1 establishes the shared board crate. The [driver migration inventory](board/driver.md) records the pre- and post-extraction consumer runs.
+
 - [ ] Exercise an OrCAD X-style shared constraint ID, EasyEDA Pro layout reuse/ECO with an unrelated locked instance, and DipTrace-style pair tuning. A known length/skew violation and repair must produce the expected signed margin. Verify cross-highlighting survives rename, undo and reload.
 - [ ] Run the research placer against the driver placer on held-out boards under the same router, seeds and time limit. Publish completion, DRC faults, vias, total length, memory and time, including failed routes.
 
