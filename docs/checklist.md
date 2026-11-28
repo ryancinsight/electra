@@ -139,7 +139,7 @@ Workspace 0.7.2 adds the [routed rail, native field probe and nominal piezo port
 Workspace 0.7.1 qualifies the [uniform line and annular field solve](field/interconnect.md).
 
 - [ ] Compare two PCB heater layouts at recorded input power, stack-up and ambient conditions. Validate simulated peak and spatial temperature rise against measured locations and uncertainty; record coupon-specific limits.
-- [ ] On a pinned board compare fixed-via and joint via/decap candidates under the same component budget against the same target impedance over frequency. Verify the winning trace independently. Detect an injected passivity violation, measure fit change after repair, and check energy into passive terminations.
+- [x] On a pinned board compare fixed-via and joint via/decap candidates under the same component budget against the same target impedance over frequency. Verify the winning trace independently. Detect an injected passivity violation, measure fit change after repair, and check energy into passive terminations. [Coupon, rankings and limits](field/pdn.md) · [Passivity and energy](field/passivity.md)
 - [x] Use Metis to probe an Iris rail-drop and thermal overlay at a known board coordinate. Check value, unit, physical position and selected net against solver samples at two zoom levels.
 
 - [x] Recover matched/open/short line reflection coefficients of 0/+1/−1 within 0.01 and the predicted flight time within 1%. Check reciprocity and passivity of a known passive two-port over the declared band.
